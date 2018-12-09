@@ -44,12 +44,16 @@
 
     (define (init-fields)
       (define h (make-hash))
+      (define random-color 
+        (let ([colors (send the-color-database get-names)])
+          (list-ref colors (random (length colors)))))
       (hash-set! h 'direction (random 360))
       (hash-set! h 'breed breed)
       (hash-set! h 'id id)
       (hash-set! h 'shape 'wedge)
       (hash-set! h 'x (/ (world-width) 2))
       (hash-set! h 'y (/ (world-height) 2))
+      (hash-set! h 'color random-color)
       h
       )
     

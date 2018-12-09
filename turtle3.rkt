@@ -74,9 +74,12 @@
 (define-agent move (d))
 (define-agent right (deg))
 (define-agent left (deg))
+(define-agent set-color (c))
 
+(define patch-size (make-parameter 8))
 (define-breed patch patches)
-
+(create-patches (* (/ (world-width) (patch-size))
+                   (/ (world-width) (patch-size))))
 
 ;;; --------------------------------------------
 (define-breed turtle turtles)
@@ -100,7 +103,9 @@
   )
 
 (define (setup)
-  'pass)
+  (ask-turtles
+   (set-color "firebrick")))
+
 
 (define ticker (make-parameter 0))
 (define (tick)
@@ -141,12 +146,9 @@
                     ;; (send critter add-own-field 'dc)
                     ;;(send critter invoke 'set-dc dc)
                     
-                    (send critter invoke 'set-x (/ (world-width) 2))
-                    (send critter invoke 'set-y (/ (world-height) 2))
-                    
-                    (send critter invoke 'set-color
-                          (let ([colors (send the-color-database get-names)])
-                            (list-ref colors (random (length colors)))))
+                    ;;(send critter invoke 'set-x (/ (world-width) 2))
+                    ;;(send critter invoke 'set-y (/ (world-height) 2))
+                    'pass
                     ))
 
                 (setup)
