@@ -75,6 +75,7 @@
 (define-agent right (deg))
 (define-agent left (deg))
 (define-agent set-color (c))
+(define-agent knows ())
 
 (define patch-size (make-parameter 8))
 (define-breed patch patches)
@@ -138,27 +139,20 @@
       (thread (λ ()
                 
                 (sleep 1)
-
-                (for ([(plural agent-h) agent-hashes])
-                  ;; (printf "breed ~a~n" plural)
-                  (for ([(id critter) agent-h])
-                    ;; (printf "Adding things to ~a ~a~n" plural id)
-                    ;; (send critter add-own-field 'dc)
-                    ;;(send critter invoke 'set-dc dc)
-                    
-                    ;;(send critter invoke 'set-x (/ (world-width) 2))
-                    ;;(send critter invoke 'set-y (/ (world-height) 2))
-                    'pass
-                    ))
-
                 (setup)
-              
+                
+                #;(for ([(plural agent-h) agent-hashes])
+                    (for ([(id critter) agent-h])
+                      (printf "knows ~a~n" (send critter invoke 'knows))))
+                
                 (let loop ()
                   (go)
                   
                   (for ([(plural agent-h) agent-hashes])
-                    (for ([(id critter) agent-h])
-                      (send critter invoke 'draw)))
+                    (unless (equal? plural 'patches)
+                      (for ([(id critter) agent-h])
+                        (send critter invoke 'draw))))
+                  
                   (tick)
                   (send (hash-ref globals 'world-dc) clear)
                   (loop)

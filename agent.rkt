@@ -16,6 +16,15 @@
 (struct location (x y) #:transparent)
 (struct Nothing ())
 
+;; https://stackoverflow.com/questions/2187657/calculate-second-point-knowing-the-starting-point-and-distance
+;; https://math.stackexchange.com/questions/604324/find-a-point-n-distance-away-from-a-specified-point-in-a-given-direction
+(define pi-conv (/ pi 360))
+(define (offset x y direction magnitude)
+  (define dir (* direction pi-conv))
+  (define dx (* magnitude (sin dir)))
+  (define dy (* magnitude (cos dir)))
+  (values (+ dx x) (+ dy y)))
+
 (define agent%
   (class object%
     (init-field id
@@ -92,18 +101,32 @@
                                            (hash-ref innate-fields 'y))))
       (hash-set! h 'get-x (λ () (hash-ref innate-fields 'x)))
       (hash-set! h 'get-y (λ () (hash-ref innate-fields 'y)))
-      (hash-set! h 'move
-                 (λ (magnitude)
-                   ;; https://stackoverflow.com/questions/2187657/calculate-second-point-knowing-the-starting-point-and-distance
-                   ;; https://math.stackexchange.com/questions/604324/find-a-point-n-distance-away-from-a-specified-point-in-a-given-direction
-                   (define direction (* (hash-ref innate-fields 'direction)
+      (hash-set! h 'knows
+                 (λ () (append
+                        (for/list ([(k v) innate-fields]) k)
+                        (for/list ([(k v) owned-fields]) k))))
+                          
+                            
+      #|
+(define direction (* (hash-ref innate-fields 'direction)
                                         (/ pi 180)))
                    (define dx (* magnitude (sin direction)))
                    (define dy (* magnitude (cos direction)))
                    ((hash-ref h 'set-x)
-                    (+ (hash-ref innate-fields 'x) dx))
+                    (+  dx))
                    ((hash-ref h 'set-y)
                     (+ (hash-ref innate-fields 'y) dy))
+
+|#
+      (hash-set! h 'move
+                 (λ (magnitude)
+                   (define direction (hash-ref innate-fields 'direction))
+                   (define-values (new-x new-y)
+                     (offset (hash-ref innate-fields 'x)
+                             (hash-ref innate-fields 'y)
+                             direction magnitude))
+                   ((hash-ref h 'set-x) new-x)
+                   ((hash-ref h 'set-y) new-y)
                    ))
       (hash-set! h 'right (λ (deg)
                             (hash-set!
@@ -116,22 +139,36 @@
                              (modulo (- (hash-ref innate-fields 'direction)
                                         deg) 360))))
 
+      (define black-pen
+        (let ([p (new pen%)])
+          (send p set-color (make-object color% "black"))
+          p))
+      
+      (define black-brush (new brush% [style 'solid] [color "black"]))
       (hash-set! h 'draw (λ ()
                            (define dc (hash-ref globals 'world-dc))
                            (define p (new pen%))
                            (define b (new brush%
                                           [style 'solid]
                                           [color (hash-ref innate-fields 'color)]))
+                           
                            (send dc set-brush b)
                            (send p set-color
                                  (make-object color%
                                    (hash-ref innate-fields 'color)))
                            (send dc set-pen p)
-                           (send dc
-                                 draw-ellipse
-                                 (hash-ref innate-fields 'x)
-                                 (hash-ref innate-fields 'y)
-                                 8 8)))
+                           (define body-x (hash-ref innate-fields 'x))
+                           (define body-y (hash-ref innate-fields 'y))
+                           (define dir (hash-ref innate-fields 'direction))
+                           (send dc draw-ellipse body-x body-y 8 8)
+
+                           (define-values (head-x head-y)
+                             (offset body-x body-y dir 4))
+
+                           (send dc set-pen black-pen)
+                           (send dc set-brush black-brush)
+                           (send dc draw-ellipse head-x head-y 2 2)
+                           ))
 
       (hash-set! h 'set-color (λ (c)
                                 (hash-set! innate-fields 'color c)))
