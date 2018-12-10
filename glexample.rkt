@@ -41,7 +41,9 @@
         [(and (even? col) (even? row)) (glColor3f 0.2 0.2 0.2)]
         [(even? col) (glColor3f 1 1 1)]
         [(even? row) (glColor3f 0.4 0.4 0.4)]
-        [else (glColor3f 0 0 0)])
+        [else (glColor3f (/ (random 10) 10)
+                         (/ (random 10) 10)
+                         (/ (random 10) 10))])
       (glVertex3f (+ 0 (* side row)) (+ 0 (* col side)) 0)
       (glVertex3f (+ side (* side row)) (+ 0 (* col side)) 0)
       (glVertex3f (+ side (* side row)) (+ side (* col side)) 0)
@@ -133,3 +135,5 @@
       [(> (- (current-seconds) start) secs)
        (killer)]
       [else (loop)])))
+
+(run 30)
