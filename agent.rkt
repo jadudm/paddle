@@ -18,12 +18,22 @@
 
 ;; https://stackoverflow.com/questions/2187657/calculate-second-point-knowing-the-starting-point-and-distance
 ;; https://math.stackexchange.com/questions/604324/find-a-point-n-distance-away-from-a-specified-point-in-a-given-direction
-(define pi-conv (/ pi 360))
+(define pi-conv (/ pi 180))
+(define (qopx d)
+  (cond
+    [(and (>= 0) (<= 180)) +]
+    [else -]))
+
+(define (qopy d)
+  (cond
+    [(and (>= -90) (<= 90)) +]
+    [else -]))
+
 (define (offset x y direction magnitude)
   (define dir (* direction pi-conv))
-  (define dx (* magnitude (sin dir)))
-  (define dy (* magnitude (cos dir)))
-  (values (+ dx x) (+ dy y)))
+  (define dy (* magnitude (sin dir)))
+  (define dx (* magnitude (cos dir)))
+  (values (+ x dx) (+ y dy)))
 
 (define agent%
   (class object%
