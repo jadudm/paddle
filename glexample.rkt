@@ -5,15 +5,27 @@
 (define (resize w h)
   (glViewport 0 0 w h))
 
-(define rows 40)
-(define cols 40)
+(define rows 80)
+(define cols 80)
 
 (define step-x 0.1)
 (define step-y 0.1)
 
-(define num-turtles 100)
-(define turtle-xs (make-vector num-turtles 18))
-(define turtle-ys (make-vector num-turtles 18))
+(define num-turtles 5000)
+(define turtle-xs (make-vector num-turtles (/ rows 2)))
+(define turtle-ys (make-vector num-turtles (/ cols 2)))
+
+
+(define (pick-item ls)
+  (list-ref ls (random (length ls))))
+(define motion (make-vector num-turtles))
+(for ([ndx num-turtles])
+  (vector-set! motion ndx
+               (list (pick-item (list + - +))
+                     (pick-item (list + - -))
+                     (pick-item (list + - + +))
+                     (pick-item (list + - - -))
+                     (pick-item (list + -)))))
 
 (define (draw-opengl)
   (glClearColor 0.0 0.0 0.0 0.0)
@@ -32,18 +44,17 @@
   ;; glVertex3f(-1.0f, 1.0f, 0.0f); // The top left corner  
   ;; glVertex3f(1.0f, 1.0f, 0.0f); // The top right corner  
   ;; glVertex3f(1.0f, -1.0f, 0.0f); // The bottom right corner
-
+ 
   (define side 1)
   (for ([row rows])
     (for ([col cols])
       (glBegin GL_QUADS)
       (cond
-        [(and (even? col) (even? row)) (glColor3f 0.2 0.2 0.2)]
-        [(even? col) (glColor3f 1 1 1)]
-        [(even? row) (glColor3f 0.4 0.4 0.4)]
-        [else (glColor3f (/ (random 10) 10)
-                         (/ (random 10) 10)
-                         (/ (random 10) 10))])
+        [(and (even? col) (even? row))
+         (glColor3ub #x80 #x80 #x80)]
+        [(even? col) (glColor3ub #xFF #xFF #xFF)]
+        [(even? row) (glColor3ub #x66 #x66 #x66 )]
+        [else (glColor3ub #x00 #x00 #x00)])
       (glVertex3f (+ 0 (* side row)) (+ 0 (* col side)) 0)
       (glVertex3f (+ side (* side row)) (+ 0 (* col side)) 0)
       (glVertex3f (+ side (* side row)) (+ side (* col side)) 0)
@@ -57,7 +68,7 @@
     (define turtle-x (vector-ref turtle-xs n))
     (define turtle-y (vector-ref turtle-ys n))
     (glBegin GL_TRIANGLES)
-    (glColor3f (/ (random 10) 10) (/ (random 10) 10) (/ (random 10) 10))
+    (glColor3ub (random 256) (random 256) (random 256))
     (glVertex3f turtle-x (+ (/ 1 2) turtle-y) 0)
     (glVertex3f (- turtle-x (/ 1 2)) (- turtle-y (/ 1 2)) 0)
     (glVertex3f (+ turtle-x (/ 1 2)) (- turtle-y (/ 1 2)) 0)
@@ -89,8 +100,6 @@
                   ;; (sleep (/ 1 60))
                   (loop)))))
 
-(define (pick-item ls)
-  (list-ref ls (random (length ls))))
 
 (define (update-thread ch)
   (thread (λ ()
@@ -102,12 +111,12 @@
                 (define turtle-x (vector-ref turtle-xs n))
                 (define turtle-y (vector-ref turtle-ys n))
                 
-                (set! turtle-x ((pick-item (list + -))
+                (set! turtle-x ((pick-item (vector-ref motion n))
                                 turtle-x
-                                (* step-x (random 3))))
-                (set! turtle-y ((pick-item (list + -))
+                                (* step-x (add1 (random 3)))))
+                (set! turtle-y ((pick-item (vector-ref motion n))
                                 turtle-y
-                                (* step-y (random 3))))
+                                (* step-y (add1 (random 3)))))
 
                 (when (> turtle-x rows)
                   (set! turtle-x 0))
@@ -136,4 +145,4 @@
        (killer)]
       [else (loop)])))
 
-(run 30)
+(run 10)
