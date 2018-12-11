@@ -2,52 +2,14 @@
 (require racket/gui
          sgl/gl)
 
+
 (require "turtle4.rkt")
+(provide (all-defined-out))
 
 
+;; I would like these globals somewhere else.
 (define world-rows (make-parameter 80))
 (define world-cols (make-parameter 80))
-
-(define step-x 0.1)
-(define step-y 0.1)
-
-(define-breed turtle turtles)
-(create-turtles 5000)
-;; (ask-turtles (set-xy 3 5) (set-y 100))
-
-
-(define (move-turtles)
-  (ask-turtles
-   (cond
-     [(zero? (modulo (random 11) 2))
-      (move 1)
-      (right (random 15))]
-     [else
-      (move 1)
-      (left (random 15))])
-   ))
-
-(define (go)
-  (move-turtles)
-  )
-
-(define (setup)
-  ;; (printf "Running setup~n")
-  (ask-turtles
-   #;(printf "setup ~a ~a~n"
-           (agent-singular (current-agent))
-           (agent-id (current-agent)))
-   
-   ;; (set-color! (color-name->color-obj "firebrick"))
-   (set-color! (select-random-color))
-   (set-x! (/ (world-rows) 2))
-   (set-y! (/ (world-cols) 2))
-   (set-world-rows! (world-rows))
-   (set-world-cols! (world-cols))
-
-   ;; (printf "init x ~a y ~a~n" (get-x) (get-y))
-   ))
-
 
 (define ticker (make-parameter 0))
 (define (tick)
@@ -137,7 +99,7 @@
 
 (define shutdown (make-parameter false))
 
-(define (run-world)
+(define (run-world setup go)
   ;; We need to setup turtles first.
   (setup)
 
@@ -166,9 +128,3 @@
                 ))))
 
   (λ () (map kill-thread (list draw-thread))))
-
-(define kill-proc (run-world))
-(shutdown
- (λ ()
-   (printf "Killing computation threads.~n")
-   (kill-proc)))
