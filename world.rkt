@@ -2,19 +2,18 @@
 (require racket/gui
          sgl/gl)
 
-
 (require "turtle4.rkt")
 (provide (all-defined-out))
-
 
 ;; I would like these globals somewhere else.
 (define world-rows (make-parameter 80))
 (define world-cols (make-parameter 80))
 
 (define ticker (make-parameter 0))
+(define tick-pause (make-parameter (/ 1 60)))
 (define (tick)
   (ticker (add1 (ticker)))
-  (sleep (/ 1 60)))
+  (sleep (tick-pause)))
 
 (define (draw-agents)
   (for ([(plural agent-vec) agent-vectors])
@@ -24,7 +23,13 @@
           (define turtle-x (get-x))
           (define turtle-y (get-y))
           ;; (printf "a ~a x ~a y ~a~n" (agent-id (current-agent)) turtle-x turtle-y)
- 
+
+
+          (glPushMatrix)
+          (glTranslatef (get-x) (get-y) 0)
+          (glRotatef (get-direction) 0 0 1)
+          (glTranslatef (- (get-x)) (- (get-y)) 0)
+          
           (glBegin GL_TRIANGLES)
           ;; These return bytes.
           (define color-obj (get-color))
@@ -32,10 +37,14 @@
                       (send color-obj green)
                       (send color-obj blue))
           ;; This does not center the agent in a square.
+          
           (glVertex3f turtle-x (+ (/ 1 2) turtle-y) 0)
           (glVertex3f (- turtle-x (/ 1 2)) (- turtle-y (/ 1 2)) 0)
           (glVertex3f (+ turtle-x (/ 1 2)) (- turtle-y (/ 1 2)) 0)
           (glEnd)
+
+          
+          (glPopMatrix)
           )))))
 
 (define (setup-gl-draw)
@@ -55,6 +64,8 @@
   (define side 1)
   (for ([row (world-rows)])
     (for ([col (world-cols)])
+      
+      
       (glBegin GL_QUADS)
       (cond
         [(and (even? col) (even? row))
@@ -65,8 +76,12 @@
       (glVertex3f (+ 0 (* side row)) (+ 0 (* col side)) 0)
       (glVertex3f (+ side (* side row)) (+ 0 (* col side)) 0)
       (glVertex3f (+ side (* side row)) (+ side (* col side)) 0)
-      (glVertex3f (+ 0 (* side row)) (+ side (* col side)) 0)      
-      (glEnd))))
+      (glVertex3f (+ 0 (* side row)) (+ side (* col side)) 0)
+      
+      (glEnd)
+
+      
+      )))
 
 
 (define (draw-opengl)
@@ -119,7 +134,6 @@
     (thread (λ ()
                 
               (sleep 1)
-              
               (let loop ()
                 (go)
                 (send gl on-paint)

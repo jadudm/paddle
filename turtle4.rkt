@@ -31,17 +31,22 @@
   #:transparent)
 
 (define (select-random-color)
-      (define random-color 
-      (let ([colors (send the-color-database get-names)])
-        (list-ref colors (random (length colors)))))
+  (define random-color 
+    (let ([colors (send the-color-database get-names)])
+      (list-ref colors (random (length colors)))))
   (send the-color-database find-color random-color))
 
 (define (color-name->color-obj name)
   (send the-color-database find-color name))
 
+(define (rgb r g b)
+  (make-object color% r g b))
+(define (rgba r g b a)
+  (make-object color% r g b a))
+
 ;; Construct an agent constructor.
 (define (make-base-agent singular plural breed-overrides)
-  (λ (id #:overrides [indiv-overrides (make-hash)])
+  (λ (id)
     (define fields (make-hash))
 
     (hash-set! fields 'color (select-random-color))
@@ -55,8 +60,7 @@
     
     
     ;; Apply the overrides
-    (for ([overrides (list breed-overrides
-                           indiv-overrides)])
+    (for ([overrides (list breed-overrides)])
       (for ([(k v) overrides])
         (hash-set! fields k v)))
     
@@ -75,9 +79,28 @@
          (for-syntax syntax/stx)
          syntax/stx)
 
-(require (for-syntax racket/syntax)
-         (for-syntax syntax/stx)
-         syntax/stx)
+(require (for-syntax syntax/parse racket/syntax racket/sequence))
+
+
+(begin-for-syntax
+  (define (format-tag-ht        ctx loc tag)      (format-id ctx "~a-ht"      tag      #:source loc))
+  (define (format-tag-get-name  ctx loc tag name) (format-id ctx "~a-get-~a"  tag name #:source loc))
+  (define (format-tag-set-name! ctx loc tag name) (format-id ctx "~a-set-~a!" tag name #:source loc)))
+
+(define-syntax (introduce stx)
+  (syntax-parse stx
+    [(_introduce tag:id x:id ...)
+     (define tag-sym (syntax-e #'tag))
+     (with-syntax ([tag-ht           (format-tag-ht stx #'tag tag-sym)]
+                   [(tag-get-x ...)  (for/list ([name (in-syntax #'(x ...))])
+                                       (format-tag-get-name stx name tag-sym (syntax-e name)))]
+                   [(tag-set-x! ...) (for/list ([name (in-syntax #'(x ...))])
+                                       (format-tag-set-name! stx name tag-sym (syntax-e name)))])
+       (syntax/loc stx
+         (begin
+           ;; (define tag-ht (make-hasheq))
+           (define (tag-get-x)    (hash-ref  (agent-fields (current-agent)) 'x false)) ...
+           (define (tag-set-x! v) (hash-set! (agent-fields (current-agent)) 'x v))  ...)))]))
 
 (define-syntax (define-breed stx)
   (syntax-case stx ()
@@ -87,11 +110,16 @@
                    [ask-one   (format-id #'singular "ask-~a" #'singular)]
                    [create-breeds (format-id #'plural "create-~a" #'plural)]
                    [breeds-own (format-id #'plural "~a-own" #'plural)]
+                   [breed-fields (format-id #'singular "~a-fields" #'singular)]
+                   [breed-set!   (format-id #'singular "~a-set!" #'singular)]
+                   [breed-get    (format-id #'singular "~a-get" #'singular)]
                    [breed-vec (format-id #'plural "~a-vec" #'plural)]
+                   [no-breeds (format-id #'plural "no-~a" #'plural)]
                    )
        #`(begin
            (define breed-vec (make-vector 0))
-          
+           (define breed-fields empty)
+           
            (define (breed-pred? o)
              (and (agent? o)
                   (equal? (agent-singular o) (quote singular))))
@@ -114,18 +142,42 @@
                (vector-set! breed-vec id (maker id)))
              (hash-set! agent-vectors (quote plural) breed-vec)
              )
-               
 
            (define-syntax (breeds-own stx)
-             (syntax-case stx ()
-               [(_ fields (... ...))
-                #'(for ([critter breed-vec])
-                    (for ([field (quote (list fields (... ...)))])
-                      (define-agent-set/get field)
-                      ))]))           
-           ))]))
+             (syntax-parse stx
+               [(_ fields:id (... ...))
+                #`(introduce singular fields (... ...))])) 
+                          
+           
+           (define no-breeds empty)
+           ))
+     ]))
 
+#|
 
+                #`(begin
+                      #,@(for/list ([field (quote (list fields (... ...)))])
+                           #`(begin
+                               (define #,(format-id (datum->syntax #f field)
+                                                    "get-~a"
+                                                    (datum->syntax #f field))
+                                 (case-lambda
+                                   [()
+                                    (hash-ref (agent-fields (current-agent))
+                                              (quote field) (NoValueFound))]
+                                   [(a)
+                                    (hash-ref (agent-fields a)
+                                              (quote field) (NoValueFound))]))
+                               (define #,(format-id field "set-~a!" field)
+                                 (case-lambda
+                                   [(v)
+                                    (hash-set! (agent-fields (current-agent))
+                                               (quote field) v)]
+                                   [(a v)
+                                    (hash-set! (agent-fields a)
+                                               (quote field) v)]))))
+                  )
+|#
 
 
 ;;;;;;
@@ -167,7 +219,7 @@
 (define-agent-set/get world-cols)
 
 (define (offset x y direction magnitude)
-  (define dir (* direction pi-conv))
+  (define dir (* (+ direction 90) pi-conv))
   (define dy (* magnitude (sin dir)))
   (define dx (* magnitude (cos dir)))
   (values (+ x dx) (+ y dy)))
