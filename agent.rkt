@@ -29,11 +29,6 @@
     [(and (>= -90) (<= 90)) +]
     [else -]))
 
-(define (offset x y direction magnitude)
-  (define dir (* direction pi-conv))
-  (define dy (* magnitude (sin dir)))
-  (define dx (* magnitude (cos dir)))
-  (values (+ x dx) (+ y dy)))
 
 (define agent%
   (class object%

@@ -1,0 +1,197 @@
+#lang racket
+(require racket/gui)
+
+(provide (all-defined-out))
+
+;; Global variables... perhaps replace params?
+(define globals (make-hash))
+;; This tracks all of the agent vectors
+(define agent-vectors (make-hash))
+
+;; For tracking who we are working with right now
+(define current-agent (make-parameter false))
+
+(struct Nothing ())
+
+;; https://stackoverflow.com/questions/2187657/calculate-second-point-knowing-the-starting-point-and-distance
+;; https://math.stackexchange.com/questions/604324/find-a-point-n-distance-away-from-a-specified-point-in-a-given-direction
+(define pi-conv (/ pi 180))
+
+;; Can an agent just be a vector of values?
+;; In Racket, structs should be roughly as fast,
+;; and I would get some typing lift. So, we'll use
+;; structs instead of vectors.
+#|
+#:methods gen:custom-write
+  [(define (write-proc a port mode)
+     (fprintf port "Agent[ ~a ] Breed[ ~a ]"
+              (agent-id a) (agent-singular a)))]
+|#
+(struct agent (id singular plural fields)
+  #:transparent)
+
+(define (select-random-color)
+      (define random-color 
+      (let ([colors (send the-color-database get-names)])
+        (list-ref colors (random (length colors)))))
+  (send the-color-database find-color random-color))
+
+(define (color-name->color-obj name)
+  (send the-color-database find-color name))
+
+;; Construct an agent constructor.
+(define (make-base-agent singular plural breed-overrides)
+  (λ (id #:overrides [indiv-overrides (make-hash)])
+    (define fields (make-hash))
+
+    (hash-set! fields 'color (select-random-color))
+    
+    (hash-set! fields 'direction (random 360))
+    (hash-set! fields 'breed singular)
+    (hash-set! fields 'id id)
+    (hash-set! fields 'shape 'wedge)
+    ; (hash-set! fields 'x (/ (world-width) 2))
+    ; (hash-set! fields 'y (/ (world-height) 2))
+    
+    
+    ;; Apply the overrides
+    (for ([overrides (list breed-overrides
+                           indiv-overrides)])
+      (for ([(k v) overrides])
+        (hash-set! fields k v)))
+    
+    ;; Return the agent.
+    (agent id singular plural fields)))
+
+(define make-turtle
+  (make-base-agent 'turtle 'turtles (make-hash)))
+
+
+;; AGENT METHODS
+;; These become functions.
+(struct NoValueFound ())
+
+(require (for-syntax racket/syntax)
+         (for-syntax syntax/stx)
+         syntax/stx)
+
+(require (for-syntax racket/syntax)
+         (for-syntax syntax/stx)
+         syntax/stx)
+
+(define-syntax (define-breed stx)
+  (syntax-case stx ()
+    [(_ singular plural)
+     (with-syntax ([breed-pred? (format-id #'singular "~a?" #'singular)]
+                   [ask-breed (format-id #'plural "ask-~a" #'plural)]
+                   [ask-one   (format-id #'singular "ask-~a" #'singular)]
+                   [create-breeds (format-id #'plural "create-~a" #'plural)]
+                   [breeds-own (format-id #'plural "~a-own" #'plural)]
+                   [breed-vec (format-id #'plural "~a-vec" #'plural)]
+                   )
+       #`(begin
+           (define breed-vec (make-vector 0))
+          
+           (define (breed-pred? o)
+             (and (agent? o)
+                  (equal? (agent-singular o) (quote singular))))
+           
+           (define-syntax (ask-breed stx)
+             (syntax-case stx ()
+               [(_ f* (... ...))
+                #'(begin
+                    (for ([critter breed-vec])
+                      (parameterize ([current-agent critter])
+                        f* (... ...))
+                      ))]))
+
+           (define (create-breeds n)
+             (set! breed-vec (make-vector n false))
+             (for ([id (range n)])
+               (define maker
+                 (make-base-agent
+                  (quote singular) (quote plural) (make-hash)))
+               (vector-set! breed-vec id (maker id)))
+             (hash-set! agent-vectors (quote plural) breed-vec)
+             )
+               
+
+           (define-syntax (breeds-own stx)
+             (syntax-case stx ()
+               [(_ fields (... ...))
+                #'(for ([critter breed-vec])
+                    (for ([field (quote (list fields (... ...)))])
+                      (define-agent-set/get field)
+                      ))]))           
+           ))]))
+
+
+
+
+;;;;;;
+;; Should I assume we're always parameterizing
+;; over the (current-agent) parameter? If so,
+;; that would mean the user never provides the
+;; agent argument in these functions.
+(define-syntax (define-agent-set/get stx)
+  (syntax-case stx ()
+    [(_ field)
+     (with-syntax ([get (format-id #'field "get-~a" #'field)]
+                   [set (format-id #'field "set-~a!" #'field)])
+       #`(begin
+           (define get
+             (case-lambda
+               [()
+                (hash-ref (agent-fields (current-agent))
+                          (quote field) (NoValueFound))]
+               [(a)
+                (hash-ref (agent-fields a)
+                          (quote field) (NoValueFound))]))
+           (define set
+             (case-lambda
+               [(v)
+                (hash-set! (agent-fields (current-agent))
+                           (quote field) v)]
+               [(a v)
+                (hash-set! (agent-fields a)
+                           (quote field) v)]))
+           ))]))
+
+(define-agent-set/get id)
+(define-agent-set/get breed)
+(define-agent-set/get x)
+(define-agent-set/get y)
+(define-agent-set/get direction)
+(define-agent-set/get color)
+(define-agent-set/get world-rows)
+(define-agent-set/get world-cols)
+
+(define (offset x y direction magnitude)
+  (define dir (* direction pi-conv))
+  (define dy (* magnitude (sin dir)))
+  (define dx (* magnitude (cos dir)))
+  (values (+ x dx) (+ y dy)))
+
+(define (wrap v edge)
+  (cond
+    [(> v edge) 0]
+    [(<= v 0) edge]
+    [else v]))
+
+(define (move magnitude)
+  (define direction (get-direction (current-agent)))
+  (define-values (new-x new-y)
+    (offset (get-x (current-agent))
+            (get-y (current-agent))
+            direction magnitude))
+  (set-x! (current-agent)
+          (wrap new-x (get-world-rows (current-agent))))
+  (set-y! (current-agent)
+          (wrap new-y (get-world-cols (current-agent))))
+  )
+
+(define (right d)
+  (set-direction! (current-agent) (+ (get-direction (current-agent)) d)))
+
+(define (left d)
+  (set-direction! (current-agent) (- (get-direction (current-agent)) d)))
