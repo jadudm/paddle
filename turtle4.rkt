@@ -1,7 +1,8 @@
 #lang racket
 (require racket/gui)
 
-(provide (all-defined-out))
+(provide (for-syntax (all-defined-out))
+         (all-defined-out))
 
 ;; Global variables... perhaps replace params?
 (define globals (make-hash))
@@ -75,8 +76,7 @@
 ;; These become functions.
 (struct NoValueFound ())
 
-(require (for-syntax racket/syntax)
-         (for-syntax syntax/stx)
+(require racket/syntax
          syntax/stx)
 
 (require (for-syntax syntax/parse racket/syntax racket/sequence))
@@ -102,10 +102,49 @@
            (define (tag-get-x)    (hash-ref  (agent-fields (current-agent)) 'x false)) ...
            (define (tag-set-x! v) (hash-set! (agent-fields (current-agent)) 'x v))  ...)))]))
 
+(begin-for-syntax
+
+  (define (expand-breed-pred stx singular plural)
+    (with-syntax ([breed-pred? (format-id stx "~a?" #'singular)])
+      (syntax/loc stx
+        (define (breed-pred? o)
+          (and (agent? o)
+               (equal? (agent-singular o) (quote singular)))))))
+
+  (define (expand-breed-vec stx plural)
+    (with-syntax ([breed-vec (format-id stx "~a-vec" #'plural)])
+      (syntax/loc stx
+        (define breed-vec (make-vector 0)))))
+
+  (define (expand-breed-fields stx singular)
+    (with-syntax ([breed-fields (format-id stx "~a-vec" #'singular)])
+      (syntax/loc stx
+        (define breed-fields empty))))
+
+  (define (ask-breed stx plural)
+    (with-syntax ([ask-breed (format-id stx "ask-~a" #'plural)]
+                  [(_ fields ...) stx])
+      (syntax/loc stx
+        (for ([critter breed-vec])
+          (parameterize ([current-agent critter])
+            fields ...)
+          ))))
+
+  )
+  
 (define-syntax (define-breed stx)
-  (syntax-case stx ()
+  (syntax-parse stx
     [(_ singular plural)
-     (with-syntax ([breed-pred? (format-id #'singular "~a?" #'singular)]
+     (syntax/loc stx
+       (begin
+         (expand-breed-vec       stx            #'plural )
+         (expand-breed-fields    stx #'singular          )
+         (expand-breed-pred      stx #'singular #'plural )
+         (expand-ask-breed       stx            #'plural )
+         ))]))
+
+
+#;(with-syntax ([breed-pred? (format-id #'singular "~a?" #'singular)]
                    [ask-breed (format-id #'plural "ask-~a" #'plural)]
                    [ask-one   (format-id #'singular "ask-~a" #'singular)]
                    [create-breeds (format-id #'plural "create-~a" #'plural)]
@@ -143,15 +182,41 @@
              (hash-set! agent-vectors (quote plural) breed-vec)
              )
 
+           #;(define-syntax (breeds-own stx)
+               (syntax-parse stx
+                 [(_ fields:id (... ...))
+                  #`(introduce singular fields (... ...))]))
+
            (define-syntax (breeds-own stx)
              (syntax-parse stx
-               [(_ fields:id (... ...))
-                #`(introduce singular fields (... ...))])) 
+               [(_ ids:id (... ...))
+                (with-syntax ([(getter (... ...))
+                               (datum->syntax #'singular
+                                              (map (λ (id)
+                                                     (string->symbol (format "~a-get-~a"
+                                                                             (syntax->datum #'singular)
+                                                                             id)))
+                                                   (syntax->datum #'(ids (... ...)))))]
+                              [(setter (... ...))
+                               (datum->syntax #'singular
+                                              (map (λ (id)
+                                                     (string->symbol (format "~a-set-~a!"
+                                                                             (syntax->datum #'singular)
+                                                                             id)))
+                                                   (syntax->datum #'(ids (... ...)))))])
+                  #`(begin
+                      (define (getter)
+                        (hash-ref (agent-fields (current-agent)) 'ids)) 
+                      (... ...)
+                      (define (setter v)
+                        (hash-set! (agent-fields (current-agent)) 'ids v))
+                      (... ...)
+                      ))]))
                           
            
            (define no-breeds empty)
            ))
-     ]))
+     
 
 #|
 

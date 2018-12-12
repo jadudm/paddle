@@ -7,9 +7,8 @@
 
 ;; This is code a user would write.
 (define-breed boid boids)
-(boids-own flockmates nearest-neighbor)
-
-(create-boids 30)
+;;(boids-own flockmates nearest-neighbor)
+;;(create-boids 30)
 
 (tick-pause (/ 1 60))
 
