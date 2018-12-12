@@ -53,12 +53,6 @@
                    bodies (... ...))
                  ))]
             )))))
-
-  (define (expand-create-breed syntax plural)
-    (with-syntax ([create-breed (format-id stx "create-~a" plural)]
-                  [breed-vec    (format-id stx "~a-vec" plural)])
-      (syntax/loc stx
-        (
                  
   )
   
