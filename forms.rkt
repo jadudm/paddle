@@ -65,58 +65,6 @@
 (require (for-syntax syntax/stx syntax/parse racket/syntax racket/sequence))
 
 (begin-for-syntax
-  (define (format-tag-ht        ctx loc tag)      (format-id ctx "~a-ht"      tag      #:source loc))
-  (define (format-tag-get-name  ctx loc tag name) (format-id ctx "~a-get-~a"  tag name #:source loc))
-  (define (format-tag-set-name! ctx loc tag name) (format-id ctx "~a-set-~a!" tag name #:source loc)))
-
-(define-syntax (introduce-orig stx)
-  (syntax-parse stx
-    [(_introduce tag:id x:id ...)
-     (define tag-sym (syntax-e #'tag))
-     (with-syntax ([tag-ht           (format-tag-ht stx #'tag tag-sym)]
-                   [(tag-get-x ...)  (for/list ([name (in-syntax #'(x ...))])
-                                       (format-tag-get-name stx name tag-sym (syntax-e name)))]
-                   [(tag-set-x! ...) (for/list ([name (in-syntax #'(x ...))])
-                                       (format-tag-set-name! stx name tag-sym (syntax-e name)))])
-       (syntax/loc stx
-         (begin
-           ;; (define tag-ht (make-hasheq))
-           (define (tag-get-x)    (hash-ref  (agent-fields (current-agent)) 'x false)) ...
-           (define (tag-set-x! v) (hash-set! (agent-fields (current-agent)) 'x v))  ...)))]))
-
-
-(define-syntax (introduce stx)
-  (syntax-parse stx
-    [(_introduce tag:id ids:id ...)
-     (with-syntax ([(tag-get-x ...)  (for/list ([name (in-syntax #'(ids ...))])
-                                       (datum->syntax stx
-                                                      (string->symbol
-                                                       (format "~a-get-~a"
-                                                               'tag (syntax-e name)))))]
-                   [(tag-set-x! ...) (for/list ([name (in-syntax #'(ids ...))])
-                                       (datum->syntax stx
-                                                      (string->symbol
-                                                       (format "~a-set-~a!"
-                                                               'tag (syntax-e name)))))])
-       #`(begin
-           (define (tag-get-x) (hash-ref (agents-have) (quote tag-get-x))) ...
-           (define (tag-set-x! v) (hash-set! (agents-have) (quote tag-set-x!) v)) ...
-
-           (let ([tag-get-id* (for/list ([id '(ids ...)])
-                                (string->symbol (format "~a-get-~a" (quote tag) id)))]
-                 [tag-set-id!* (for/list ([id '(ids ...)])
-                                 (string->symbol (format "~a-set-~a!" (quote tag) id)))]
-                 [ids* (syntax->list #'(ids ...))])
-             (for ([getter tag-get-id*]
-                   [setter tag-set-id!*]
-                   [id ids*])
-               (hash-set! (agents-have) getter
-                          (λ () (hash-ref (agent-fields (current-agent)) id false)))
-               (hash-set! (agents-have) setter
-                          (λ (v) (hash-set! (agent-fields (current-agent)) id v)))))
-           ))]))
-
-(begin-for-syntax
  
   
   ;; Creates a current-agent parameter that is used in the
