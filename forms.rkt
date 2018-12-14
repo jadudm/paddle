@@ -118,37 +118,39 @@
     (with-syntax ([breeds-own (format-id stx "~a-own" plural)]
                   [s singular]
                   [(tag-get-x ...)  (for/list ([name (in-syntax fields)])
-                                       (datum->syntax stx
-                                                      (string->symbol
-                                                       (format "~a-get-~a"
-                                                               (syntax->datum singular)
-                                                               (syntax-e name)))))]
-                   [(tag-set-x! ...) (for/list ([name (in-syntax fields)])
-                                       (datum->syntax stx
-                                                      (string->symbol
-                                                       (format "~a-set-~a!"
-                                                               (syntax->datum singular)
-                                                               (syntax-e name)))))]
-                   [(f* ...) (datum->syntax stx fields)]
-                   )
-       #`(begin
-           (define tag-get-x
-             (case-lambda
-               [() (hash-ref
-                    (agent-fields (current-agent))
-                    (quote f*) NoValueFound)]
-               [(a) (hash-ref
+                                      (datum->syntax stx
+                                                     (string->symbol
+                                                      (format "~a-get-~a"
+                                                              (syntax->datum singular)
+                                                              (syntax-e name)))))]
+                  [(tag-set-x! ...) (for/list ([name (in-syntax fields)])
+                                      (datum->syntax stx
+                                                     (string->symbol
+                                                      (format "~a-set-~a!"
+                                                              (syntax->datum singular)
+                                                              (syntax-e name)))))]
+                  [(f* ...) (datum->syntax stx fields)]
+                  )
+      #`(begin
+          (define tag-get-x
+            (case-lambda
+              [() (hash-ref
+                   (agent-fields (current-agent))
+                   (quote f*) NoValueFound)]
+              [(a) (hash-ref
                     (agent-fields a)
-                    (quote f*) NoValueFound)])) ...
-           (define tag-set-x!
-             (case-lambda
-               [(v) (hash-set!
-                     (agent-fields (current-agent))
-                     (quote f*) v)]
-               [(a v) (hash-set!
-                     (agent-fields a)
-                     (quote f*) v)])) ...
-           #|(hash-set! (agents-have) (quote tag-get-x)
+                    (quote f*) NoValueFound)]))
+          ...
+          (define tag-set-x!
+            (case-lambda
+              [(v) (hash-set!
+                    (agent-fields (current-agent))
+                    (quote f*) v)]
+              [(a v) (hash-set!
+                      (agent-fields a)
+                      (quote f*) v)]))
+          ...
+          #|(hash-set! (agents-have) (quote tag-get-x)
                       (λ () (hash-ref (agent-fields (current-agent))  false)))
            ...
            (hash-set! (agents-have) (quote tag-set-x!)
@@ -156,7 +158,7 @@
            ...
 |#
   
-           )))
+          )))
 
     
   (define (expand-ask-breed stx singular plural)
@@ -176,23 +178,65 @@
                  ))]
             )))))
   
-  
+   
+
+(define (core-acc/get stx core-fields)
+  (with-syntax ([(set-x! ...)
+                 (for/list ([name core-fields])
+                   (datum->syntax stx
+                                  (string->symbol
+                                   (format "set-~a!"
+                                           name))))]
+                [(get-x ...)
+                 (for/list ([name core-fields])
+                   (datum->syntax stx
+                                  (string->symbol
+                                   (format "get-~a"
+                                           name))))])
+    #`(begin
+        (define get-x
+          (case-lambda
+            [() (hash-ref
+                 (agent-fields (current-agent))
+                 (quote f*) NoValueFound)]
+            [(a) (hash-ref
+                  (agent-fields a)
+                  (quote f*) NoValueFound)]))
+        ...
+        (define set-x!
+          (case-lambda
+            [(v) (hash-set!
+                  (agent-fields (current-agent))
+                  (quote f*) v)]
+            [(a v) (hash-set!
+                    (agent-fields a)
+                    (quote f*) v)]))
+        ...
+        )))
   )
- 
-        
+
+
+(begin-for-syntax
+  (define core-fields '(x y color direction)))
+
 (define-syntax (define-breed stx)
+  (with-syntax ([(core ...)
+                 (datum->syntax stx core-fields)])
   (syntax-parse stx
     [(_ singular plural (~literal have) fields:id ...)
      #`(begin
-         #,(expand-current-agent   stx #'singular          )
-         #,(expand-breed-vec       stx #'singular #'plural )
-         #,(expand-breed-fields    stx #'singular          )
-         #,(expand-breed-pred      stx #'singular #'plural )
-         #,(expand-create-breed    stx #'singular #'plural )
-         #,(expand-ask-breed       stx #'singular #'plural )
-         #,(expand-breeds-own      stx #'singular #'plural
-                                   (syntax->list #'(fields ...)))
-         )]
+           #,(expand-current-agent   stx #'singular          )
+           #,(expand-breed-vec       stx #'singular #'plural )
+           #,(expand-breed-fields    stx #'singular          )
+           #,(expand-breed-pred      stx #'singular #'plural )
+           #,(expand-create-breed    stx #'singular #'plural )
+           #,(expand-ask-breed       stx #'singular #'plural )
+           #,(expand-breeds-own      stx #'singular #'plural
+                                     (syntax->list #'(fields ...)))
+           #,(expand-breeds-own      stx #'singular #'plural
+                                     (syntax->list #'(core ...)))
+           #,(core-acc/get stx core-fields)
+           )]
     [(_ singular plural)
      #`(begin
          #,(expand-current-agent   stx #'singular          )
@@ -201,8 +245,11 @@
          #,(expand-breed-pred      stx #'singular #'plural )
          #,(expand-create-breed    stx #'singular #'plural )
          #,(expand-ask-breed       stx #'singular #'plural )
+         #,(expand-breeds-own      stx #'singular #'plural
+                                     (syntax->list #'(core ...)))
+         #,(core-acc/get stx core-fields)
          )
-    ]))
+     ])))
 
 
 
