@@ -9,6 +9,11 @@
   'pass)
 
 (define (go)
-  'pass)
+  (ask-fishes
+   (move 1)
+   ))
 
-(run-world setup go)
+;;(run-world setup go)
+
+(define stop
+  (run-world setup go))

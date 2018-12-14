@@ -1,5 +1,9 @@
 #lang racket
-(require racket/gui)
+(require (only-in racket/draw
+                  the-color-database
+                  color%))
+
+(require "base.rkt")
 
 (provide (for-syntax (all-defined-out))
          (all-defined-out))
@@ -180,7 +184,7 @@
   
    
 
-(define (core-acc/get stx core-fields)
+#;(define (core-acc/get stx core-fields)
   (with-syntax ([(set-x! ...)
                  (for/list ([name core-fields])
                    (datum->syntax stx
@@ -235,7 +239,6 @@
                                      (syntax->list #'(fields ...)))
            #,(expand-breeds-own      stx #'singular #'plural
                                      (syntax->list #'(core ...)))
-           #,(core-acc/get stx core-fields)
            )]
     [(_ singular plural)
      #`(begin
@@ -247,10 +250,69 @@
          #,(expand-ask-breed       stx #'singular #'plural )
          #,(expand-breeds-own      stx #'singular #'plural
                                      (syntax->list #'(core ...)))
-         #,(core-acc/get stx core-fields)
          )
      ])))
 
+;; These are needed by everybody, and can't wait for agent
+;; breeds to be introduced.
+
+;;;;;;
+;; Should I assume we're always parameterizing
+;; over the (current-agent) parameter? If so,
+;; that would mean the user never provides the
+;; agent argument in these functions.
+(define-syntax (define-agent-set/get stx)
+  (syntax-case stx ()
+    [(_ field)
+     (with-syntax ([get (format-id #'field "get-~a" #'field)]
+                   [set (format-id #'field "set-~a!" #'field)])
+       #`(begin
+           (define get
+             (case-lambda
+               [()
+                (hash-ref (agent-fields (current-agent))
+                          (quote field) (NoValueFound))]
+               [(a)
+                (hash-ref (agent-fields a)
+                          (quote field) (NoValueFound))]))
+           (define set
+             (case-lambda
+               [(v)
+                (hash-set! (agent-fields (current-agent))
+                           (quote field) v)]
+               [(a v)
+                (hash-set! (agent-fields a)
+                           (quote field) v)]))
+           ))]))
+
+(define-agent-set/get id)
+(define-agent-set/get breed)
+(define-agent-set/get x)
+(define-agent-set/get y)
+(define-agent-set/get direction)
+(define-agent-set/get color)
 
 
-     
+(define (offset x y direction magnitude)
+  (define dir (* (+ direction 90) pi-conv))
+  (define dy (* magnitude (sin dir)))
+  (define dx (* magnitude (cos dir)))
+  (values (+ x dx) (+ y dy)))
+
+(define (wrap v edge)
+  (cond
+    [(> v edge) 0]
+    [(<= v 0) edge]
+    [else v]))
+
+(define (move magnitude)
+  (define direction (get-direction (current-agent)))
+  (define-values (new-x new-y)
+    (offset (get-x (current-agent))
+            (get-y (current-agent))
+            direction magnitude))
+  (set-x! (current-agent)
+          (wrap new-x (world-rows)))
+  (set-y! (current-agent)
+          (wrap new-y (world-cols)))
+  )

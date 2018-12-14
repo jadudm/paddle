@@ -2,12 +2,10 @@
 (require racket/gui
          sgl/gl)
 
-(require "forms.rkt")
+(require "base.rkt"
+         "forms.rkt")
 (provide (all-defined-out))
 
-;; I would like these globals somewhere else.
-(define world-rows (make-parameter 80))
-(define world-cols (make-parameter 80))
 
 (define ticker (make-parameter 0))
 (define tick-pause (make-parameter (/ 1 60)))
@@ -16,13 +14,14 @@
   (sleep (tick-pause)))
 
 (define (draw-agents)
+  (printf "(draw-agents)~n")
   (for ([(plural agent-vec) agent-vectors])
     (unless (equal? plural 'patches)
       (for ([critter agent-vec])
         (parameterize ([current-agent critter])
           (define turtle-x (get-x))
           (define turtle-y (get-y))
-          ;; (printf "a ~a x ~a y ~a~n" (agent-id (current-agent)) turtle-x turtle-y)
+          ;;(printf "a ~a x ~a y ~a~n" (agent-id (current-agent)) turtle-x turtle-y)
 
 
           (glPushMatrix)
@@ -114,8 +113,24 @@
 
 (define shutdown (make-parameter false))
 
+(define (default-setup)
+    (for ([(plural agent-vec) agent-vectors])
+    (unless (equal? plural 'patches)
+      (for ([critter agent-vec])
+        (parameterize ([current-agent critter])
+          (set-x! 0)
+          (set-y! 0)
+          (set-direction! (random 360))
+          (set-color! (rgb (+ 64 (random 64))
+                           (+ 64 (random 64))
+                           (+ 64 (random 64))))
+          )))))
+
 (define (run-world setup go)
-  ;; We need to setup turtles first.
+  ;; I need to setup turtles first.
+  ;; I provide a default, in case the user
+  ;; does nothing.
+  (default-setup)
   (setup)
 
   (printf "Building frame.~n")
@@ -141,7 +156,4 @@
                 (loop)
                 ))))
 
-  (λ () (map kill-thread (list draw-thread))))
-
-(define stop
-  (run-world setup go))
+  (shutdown (λ () (map kill-thread (list draw-thread)))))
