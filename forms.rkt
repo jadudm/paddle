@@ -316,3 +316,9 @@
   (set-y! (current-agent)
           (wrap new-y (world-cols)))
   )
+
+(define (right d)
+  (set-direction! (current-agent) (+ (get-direction (current-agent)) d)))
+
+(define (left d)
+  (set-direction! (current-agent) (- (get-direction (current-agent)) d)))

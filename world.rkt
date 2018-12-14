@@ -14,7 +14,7 @@
   (sleep (tick-pause)))
 
 (define (draw-agents)
-  (printf "(draw-agents)~n")
+  ;;(printf "(draw-agents)~n")
   (for ([(plural agent-vec) agent-vectors])
     (unless (equal? plural 'patches)
       (for ([critter agent-vec])
@@ -108,10 +108,11 @@
 (define paddle-frame%
   (class frame%
     (define/augment (on-close)
-      ((shutdown)))
+      (printf "The sky is falling!~n")
+      ((stop)))
     (super-new)))
 
-(define shutdown (make-parameter false))
+(define stop (make-parameter false))
 
 (define (default-setup)
     (for ([(plural agent-vec) agent-vectors])
@@ -121,9 +122,9 @@
           (set-x! 0)
           (set-y! 0)
           (set-direction! (random 360))
-          (set-color! (rgb (+ 64 (random 64))
-                           (+ 64 (random 64))
-                           (+ 64 (random 64))))
+          (set-color! (rgb (+ 128 (random 64))
+                           (+ 128 (random 64))
+                           (+ 128 (random 64))))
           )))))
 
 (define (run-world setup go)
@@ -156,4 +157,4 @@
                 (loop)
                 ))))
 
-  (shutdown (λ () (map kill-thread (list draw-thread)))))
+  (stop (λ () (map kill-thread (list draw-thread)))))
