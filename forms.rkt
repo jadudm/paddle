@@ -322,3 +322,65 @@
 
 (define (left d)
   (set-direction! (current-agent) (- (get-direction (current-agent)) d)))
+
+
+(define (sniff radius)
+  
+  (define this-agent (current-agent))
+  (define this-x (get-x))
+  (define this-y (get-y))
+
+  (define north (+ this-y radius))
+  (define south (- this-y radius))
+  (define east  (+ this-x radius))
+  (define west  (- this-x radius))
+  
+  (define nearby empty)
+  
+  (for ([(plural agent-vec) agent-vectors])
+    (unless (equal? plural 'patches)
+      (for ([critter agent-vec])
+        (parameterize ([current-agent critter])
+          (when (and (not (= (agent-id (current-agent))
+                             (agent-id this-agent)))
+                     (< (get-x) east)
+                     (> (get-x) west)
+                     (> (get-y) south)
+                     (< (get-y) north))
+            (set! nearby (cons (current-agent) nearby)))))))
+
+  nearby
+  )
+
+(define (hash-sniff radius)
+  
+  (define this-agent (current-agent))
+  (define this-x (get-x))
+  (define this-y (get-y))
+
+  (define north (+ this-y radius))
+  (define south (- this-y radius))
+  (define east  (+ this-x radius))
+  (define west  (- this-x radius))
+  
+  (define nearby (make-hash))
+
+  ;; This is an expensive way to do this.
+  ;; It gets slow with 150+ agents.
+  (for ([(plural agent-vec) agent-vectors])
+    (unless (equal? plural 'patches)
+      (for ([critter agent-vec])
+        (parameterize ([current-agent critter])
+          (when (and (not (= (agent-id (current-agent))
+                             (agent-id this-agent)))
+                     (< (get-x) east)
+                     (> (get-x) west)
+                     (> (get-y) south)
+                     (< (get-y) north))
+            (hash-set! nearby
+                       (agent-id (current-agent))
+                       (current-agent)
+                       ))))))
+
+  nearby
+  )
