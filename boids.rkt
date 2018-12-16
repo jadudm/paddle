@@ -7,17 +7,14 @@
 ;; The window is 600x600, so the number of
 ;; columns essentially determines the resolution and
 ;; size of the agents in the world.
-(world-cols 120)
-(world-rows 120)
-
+(make-world 10 10)
 ;; At full speed, it runs pretty fast. This determines
 ;; the pause length between ticks of the world.
-(tick-pause (/ 1 60))
-
+(tick-pause (/ 1 30))
 ;; I'll have a breed of agents called fish.
 (define-breed fish fishes)
 ;; And I want this many fish.
-(create-fishes 300)
+(create-fishes 10)
 
 ;; To set them up, I want to do the following.
 ;; In this case, I do nothing.
@@ -49,16 +46,9 @@
   (ask-fishes
    (move 1)
    (wiggle)
+   (sniff 2)
    )
-
-  ; (printf "l ~a~n" (hash-count spreaders))
-  (for ([(id a) spreaders])
-    (parameterize ([current-agent a])
-      (define nearby (hash-sniff 1))
-      (set! spreaders (uniq-append spreaders nearby))
-      (for ([(fid friend) nearby])
-        (set-color! friend (rgb 0 255 255)))
-      )))
+  )
 
 ;; One of the things fish do is wiggle. I flip a
 ;; coin, and depending on the result, I wiggle a bit

@@ -3,7 +3,8 @@
                   the-color-database
                   color%))
 
-(require "base.rkt")
+(require "base.rkt"
+         "matrix.rkt")
 
 (provide (for-syntax (all-defined-out))
          (all-defined-out))
@@ -19,9 +20,9 @@
 ;; https://math.stackexchange.com/questions/604324/find-a-point-n-distance-away-from-a-specified-point-in-a-given-direction
 (define pi-conv (/ pi 180))
 
-(struct agent (id singular plural fields)
-  #:transparent)
+
 (define current-agent (make-parameter false))
+
 (define agents-have   (make-parameter (make-hash)))
 
 (define (select-random-color)
@@ -38,6 +39,11 @@
 (define (rgba r g b a)
   (make-object color% r g b a))
 
+(define (format-symbol fmt . args)
+  (string->symbol
+   (apply format
+          (cons fmt args))))
+
 ;; Construct an agent constructor.
 (define (make-base-agent singular plural breed-overrides)
   (λ (id)
@@ -47,6 +53,8 @@
     
     (hash-set! fields 'direction (random 360))
     (hash-set! fields 'breed singular)
+    ;; So we can have multiple breeds in the matrix...
+    ;; FIXME: Or, should cells track different breeds differently?
     (hash-set! fields 'id id)
     (hash-set! fields 'shape 'wedge)
     
@@ -105,7 +113,10 @@
   
   (define (expand-create-breed stx singular plural)
     (with-syntax ([create-breed (format-id stx "create-~a" plural)]
-                  [breed-vec    (format-id stx "~a-vec" plural)])
+                  [breed-vec    (format-id stx "~a-vec" plural)]
+                  [sing singular]
+                  [plur plural])
+      
       (syntax/loc stx
         (begin
           (define (create-breed n)
@@ -113,9 +124,9 @@
             (for ([id (range n)])
               (define maker
                 (make-base-agent
-                 (quote singular) (quote plural) (make-hash)))
+                 (quote sing) (quote plur) (make-hash)))
               (vector-set! breed-vec id (maker id)))
-            (hash-set! agent-vectors (quote plural) breed-vec))
+            (hash-set! agent-vectors (quote plur) breed-vec))
           ))))
 
   (define (expand-breeds-own stx singular plural fields)
@@ -154,14 +165,6 @@
                       (agent-fields a)
                       (quote f*) v)]))
           ...
-          #|(hash-set! (agents-have) (quote tag-get-x)
-                      (λ () (hash-ref (agent-fields (current-agent))  false)))
-           ...
-           (hash-set! (agents-have) (quote tag-set-x!)
-                      (λ (v) (hash-set! (agent-fields (current-agent)) (quote f*) v)))
-           ...
-|#
-  
           )))
 
     
@@ -181,54 +184,18 @@
                    bodies (... ...))
                  ))]
             )))))
-  
-   
-
-#;(define (core-acc/get stx core-fields)
-  (with-syntax ([(set-x! ...)
-                 (for/list ([name core-fields])
-                   (datum->syntax stx
-                                  (string->symbol
-                                   (format "set-~a!"
-                                           name))))]
-                [(get-x ...)
-                 (for/list ([name core-fields])
-                   (datum->syntax stx
-                                  (string->symbol
-                                   (format "get-~a"
-                                           name))))])
-    #`(begin
-        (define get-x
-          (case-lambda
-            [() (hash-ref
-                 (agent-fields (current-agent))
-                 (quote f*) NoValueFound)]
-            [(a) (hash-ref
-                  (agent-fields a)
-                  (quote f*) NoValueFound)]))
-        ...
-        (define set-x!
-          (case-lambda
-            [(v) (hash-set!
-                  (agent-fields (current-agent))
-                  (quote f*) v)]
-            [(a v) (hash-set!
-                    (agent-fields a)
-                    (quote f*) v)]))
-        ...
-        )))
   )
 
 
-(begin-for-syntax
-  (define core-fields '(x y color direction)))
+;; FIXME Do I need these?
+#;(begin-for-syntax
+    (define core-fields '(x y color direction)))
 
 (define-syntax (define-breed stx)
-  (with-syntax ([(core ...)
-                 (datum->syntax stx core-fields)])
-  (syntax-parse stx
-    [(_ singular plural (~literal have) fields:id ...)
-     #`(begin
+  (with-syntax (#;[(core ...) (datum->syntax stx core-fields)])
+    (syntax-parse stx
+      [(_ singular plural (~literal have) fields:id ...)
+       #`(begin
            #,(expand-current-agent   stx #'singular          )
            #,(expand-breed-vec       stx #'singular #'plural )
            #,(expand-breed-fields    stx #'singular          )
@@ -237,21 +204,21 @@
            #,(expand-ask-breed       stx #'singular #'plural )
            #,(expand-breeds-own      stx #'singular #'plural
                                      (syntax->list #'(fields ...)))
-           #,(expand-breeds-own      stx #'singular #'plural
+           #;(expand-breeds-own      stx #'singular #'plural
                                      (syntax->list #'(core ...)))
            )]
-    [(_ singular plural)
-     #`(begin
-         #,(expand-current-agent   stx #'singular          )
-         #,(expand-breed-vec       stx #'singular #'plural )
-         #,(expand-breed-fields    stx #'singular          )
-         #,(expand-breed-pred      stx #'singular #'plural )
-         #,(expand-create-breed    stx #'singular #'plural )
-         #,(expand-ask-breed       stx #'singular #'plural )
-         #,(expand-breeds-own      stx #'singular #'plural
+      [(_ singular plural)
+       #`(begin
+           #,(expand-current-agent   stx #'singular          )
+           #,(expand-breed-vec       stx #'singular #'plural )
+           #,(expand-breed-fields    stx #'singular          )
+           #,(expand-breed-pred      stx #'singular #'plural )
+           #,(expand-create-breed    stx #'singular #'plural )
+           #,(expand-ask-breed       stx #'singular #'plural )
+           #;(expand-breeds-own      stx #'singular #'plural
                                      (syntax->list #'(core ...)))
-         )
-     ])))
+           )
+       ])))
 
 ;; These are needed by everybody, and can't wait for agent
 ;; breeds to be introduced.
@@ -285,12 +252,16 @@
                            (quote field) v)]))
            ))]))
 
+(struct bin (col row) #:transparent)
 (define-agent-set/get id)
 (define-agent-set/get breed)
-(define-agent-set/get x)
-(define-agent-set/get y)
+;(define-agent-set/get x)
+;(define-agent-set/get y)
+(define-agent-set/get bin-x)
+(define-agent-set/get bin-y)
 (define-agent-set/get direction)
 (define-agent-set/get color)
+(define-agent-set/get current-bin)
 
 
 (define (offset x y direction magnitude)
@@ -324,63 +295,165 @@
   (set-direction! (current-agent) (- (get-direction (current-agent)) d)))
 
 
-(define (sniff radius)
-  
-  (define this-agent (current-agent))
-  (define this-x (get-x))
-  (define this-y (get-y))
+;; Manipulating the world
 
-  (define north (+ this-y radius))
-  (define south (- this-y radius))
-  (define east  (+ this-x radius))
-  (define west  (- this-x radius))
-  
-  (define nearby empty)
-  
-  (for ([(plural agent-vec) agent-vectors])
-    (unless (equal? plural 'patches)
-      (for ([critter agent-vec])
-        (parameterize ([current-agent critter])
-          (when (and (not (= (agent-id (current-agent))
-                             (agent-id this-agent)))
-                     (< (get-x) east)
-                     (> (get-x) west)
-                     (> (get-y) south)
-                     (< (get-y) north))
-            (set! nearby (cons (current-agent) nearby)))))))
+(define the-world (make-matrix (world-cols) (world-rows)))
 
-  nearby
+(define (make-world x y)
+  (world-cols x)
+  (world-rows y)
+  (set! the-world (make-matrix (world-cols) (world-rows)))
   )
 
-(define (hash-sniff radius)
+(define sniff
+  (let ([sets (make-hash)])
+    (case-lambda
+      [() sets]
+      [(r)
+       (sniff (current-agent) r)]
+      [(a radius)
+       (define x (get-bin-x a))
+       (define y (get-bin-y a))
+       (define memo-key (format "~a-~a-~a" (get-bin-x a) (get-bin-y a) radius))
+       ;;(printf "memo-key ~a~n" memo-key)
+       (cond
+        [(not (hash-ref sets memo-key false))
+         (define pairs (make-hash))
+         (for ([r radius])
+           (define start-x (- x r))
+           (define start-y (- y r))
+           (define end-x (+ x r))
+           (define end-y (+ y r))
+           (for ([x (range start-x end-x)])
+             (for ([y (range start-y end-y)])
+               (define actual-x
+                 (cond
+                   [(< x 0)
+                    (+ (world-cols) x)]
+                   [(> x (world-cols))
+                    (- x (world-cols))]
+                   [else x]))
+               (define actual-y
+                 (cond
+                   [(< y 0)
+                    (+ (world-rows) y)]
+                   [(> y (world-rows))
+                    (- y (world-rows))]
+                   [else y]))
+               (hash-set! pairs actual-x actual-y)
+               )))
+         (hash-set! sets memo-key pairs)
+         pairs]
+        [else
+         ;;(printf "memoized ~a~n" memo-key)
+         (hash-ref sets memo-key 'WHAT)]
+        )])))
+                                      
+                            
+        
+        
   
-  (define this-agent (current-agent))
-  (define this-x (get-x))
-  (define this-y (get-y))
+(define (set-cell-value! x y k v)
+  (hash-set! (matrix-get-x/y the-world x y)
+             k v))
 
-  (define north (+ this-y radius))
-  (define south (- this-y radius))
-  (define east  (+ this-x radius))
-  (define west  (- this-x radius))
-  
-  (define nearby (make-hash))
+(define (get-cell-value x y k #:else [e false])
+  (hash-ref (matrix-get-x/y the-world x y) k e))
 
-  ;; This is an expensive way to do this.
-  ;; It gets slow with 150+ agents.
-  (for ([(plural agent-vec) agent-vectors])
-    (unless (equal? plural 'patches)
-      (for ([critter agent-vec])
-        (parameterize ([current-agent critter])
-          (when (and (not (= (agent-id (current-agent))
-                             (agent-id this-agent)))
-                     (< (get-x) east)
-                     (> (get-x) west)
-                     (> (get-y) south)
-                     (< (get-y) north))
-            (hash-set! nearby
-                       (agent-id (current-agent))
-                       (current-agent)
-                       ))))))
+(define (cell-remove-agent x y breed id)
+  (define h (hash-ref (matrix-get-x/y the-world x y) 'agents (make-hash)))
+  (when (and (hash-has-key? h breed)
+             (hash-has-key? (hash-ref h breed) id))
+    (hash-remove! (hash-ref h breed) id)))
+    
 
-  nearby
-  )
+(define (cell-add-agent! x y breed id)
+  (define h (hash-ref (matrix-get-x/y the-world x y) 'agents (make-hash)))
+  (cond
+    [(hash-has-key? h breed)
+     (hash-set! (hash-ref h breed) id true)]
+    [else
+     (define h2 (make-hash))
+     (hash-set! h2 id true)
+     (hash-set! h breed h2)
+     (set-cell-value! x y 'agents h)
+     ]))
+
+
+;; Agent interactions with world.
+
+(define get-x
+  (case-lambda
+    [() (get-x (current-agent))]
+    [(a)
+     ;;(printf "id ~a keys ~a~n" (agent-id a) (for/list ([(k v) (agent-fields a)]) k))
+     (hash-ref (agent-fields a) 'x)]))
+
+(define get-y
+  (case-lambda
+    [() (get-y (current-agent))]
+    [(a)
+     (hash-ref (agent-fields a) 'y)]))
+
+(define (->bin-x v)
+  (modulo (inexact->exact (floor v)) (world-cols)))
+(define (->bin-y v)
+  (modulo (inexact->exact (floor v)) (world-rows)))
+
+(define set-x!
+  (case-lambda
+    [(v) (set-x! (current-agent) v)]
+    [(a v)
+     ;; (printf "set-x! id ~a v ~a~n" (agent-id a) v)
+     ;; What is the agent's current bin-x and bin-y?
+     (define current-bin-x (get-bin-x a))
+     (define current-bin-y (get-bin-y a))
+
+     ;; If we're moving bins, update the world.
+     (define new-bin-x (->bin-x v))
+     
+     (when (NoValueFound? current-bin-x)
+       (set! current-bin-x new-bin-x)
+       (set-bin-x! new-bin-x))
+     
+     (when (not (= new-bin-x
+                   current-bin-x))
+       (cell-remove-agent current-bin-x current-bin-y
+                          (get-breed a)
+                          (agent-id a))
+       (cell-add-agent! new-bin-x current-bin-y
+                        (get-breed a)
+                        (agent-id a)))
+     ;; Update our bins
+     (set-bin-x! new-bin-x)
+
+     (hash-set! (agent-fields a) 'x v)
+     ]))
+               
+(define set-y!
+  (case-lambda
+    [(v) (set-y! (current-agent) v)]
+    [(a v)
+     ;; What is the agent's current bin-x and bin-y?
+     (define current-bin-x (get-bin-x a))
+     (define current-bin-y (get-bin-y a))
+     ;; If we're moving bins, update the world.
+     (define new-bin-y (->bin-y v))
+     
+     (when (NoValueFound? current-bin-y)
+       (set! current-bin-y new-bin-y)
+       (set-bin-y! new-bin-y))
+     
+     (when (not (= new-bin-y
+                   current-bin-y))
+       (cell-remove-agent current-bin-x current-bin-y
+                          (get-breed a)
+                          (agent-id a))
+       (cell-add-agent! current-bin-x new-bin-y
+                        (get-breed a)
+                        (agent-id a)))
+     ;; Update our bins
+     (set-bin-y! new-bin-y)
+
+     (hash-set! (agent-fields a) 'y v)
+     ]))

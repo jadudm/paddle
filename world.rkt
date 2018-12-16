@@ -2,7 +2,8 @@
 (require racket/gui
          sgl/gl)
 
-(require "base.rkt"
+(require "matrix.rkt"
+         "base.rkt"
          "forms.rkt")
 (provide (all-defined-out))
 
@@ -115,7 +116,8 @@
 (define stop (make-parameter false))
 
 (define (default-setup)
-    (for ([(plural agent-vec) agent-vectors])
+  (printf "Default setup.~n")
+  (for ([(plural agent-vec) agent-vectors])
     (unless (equal? plural 'patches)
       (for ([critter agent-vec])
         (parameterize ([current-agent critter])
