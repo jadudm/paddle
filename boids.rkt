@@ -7,14 +7,14 @@
 ;; The window is 600x600, so the number of
 ;; columns essentially determines the resolution and
 ;; size of the agents in the world.
-(make-world 10 10)
+(make-world 100 100)
 ;; At full speed, it runs pretty fast. This determines
 ;; the pause length between ticks of the world.
-(tick-pause (/ 1 30))
+(tick-pause (/ 1 60))
 ;; I'll have a breed of agents called fish.
 (define-breed fish fishes)
 ;; And I want this many fish.
-(create-fishes 10)
+(create-fishes 1000)
 
 ;; To set them up, I want to do the following.
 ;; In this case, I do nothing.
@@ -42,11 +42,23 @@
 (define spreaders (make-hash))
 (hash-set! spreaders 0 (vector-ref fishes-vec 0))
 
+(define max-nearby -inf.0)
 (define (go)
   (ask-fishes
    (move 1)
    (wiggle)
-   (sniff 2)
+   (when (zero? (agent-id (current-fish)))
+     (set-color! (rgb (random 255) (random 255)(random 255))))
+   
+   (when (< (agent-id (current-fish)) 10)
+     
+     (define nearby (sniff 5))
+     
+     ;; (printf "n ~a~n" nearby)
+     (for ([(x y) nearby])
+       (for ([(id _) (cell-agents x y (agent-singular (current-agent)))])
+         (set-color! (vector-ref fishes-vec id)
+                     (rgb (random 128) (random 128) (random 128))))))
    )
   )
 

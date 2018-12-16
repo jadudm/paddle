@@ -184,6 +184,24 @@
                    bodies (... ...))
                  ))]
             )))))
+
+  (define (expand-tell-breed stx singular plural)
+    (define that-breed (datum->syntax stx (format "that-~a" singular)))
+    (with-syntax ([tell-breed (format-id stx "tell-~a" plural)]
+                  #;[that-breed (format-id stx "that-~a" singular)])
+      (syntax/loc stx
+        (define-syntax (tell-breed stx-inner)
+          (syntax-parse stx-inner
+            [(_ snff bodies (... ...))
+             (with-syntax ([tb that-breed])
+               (syntax/loc stx-inner
+                 (define nearby snff)
+                 (for ([(x y) nearby])
+                   (for ([(id _) (cell-agents x y (agent-singular (current-agent)))])
+                     (define that-breed (vector-ref fishes-vec id))
+                     bodies (... ...)
+                     ))))]
+          )))))
   )
 
 
@@ -206,6 +224,7 @@
                                      (syntax->list #'(fields ...)))
            #;(expand-breeds-own      stx #'singular #'plural
                                      (syntax->list #'(core ...)))
+           #,(expand-tell-breed      stx #'singular #'pluaral)
            )]
       [(_ singular plural)
        #`(begin
@@ -217,6 +236,7 @@
            #,(expand-ask-breed       stx #'singular #'plural )
            #;(expand-breeds-own      stx #'singular #'plural
                                      (syntax->list #'(core ...)))
+           #,(expand-tell-breed      stx #'singular #'pluaral)
            )
        ])))
 
@@ -330,14 +350,14 @@
                  (cond
                    [(< x 0)
                     (+ (world-cols) x)]
-                   [(> x (world-cols))
+                   [(>= x (world-cols))
                     (- x (world-cols))]
                    [else x]))
                (define actual-y
                  (cond
                    [(< y 0)
                     (+ (world-rows) y)]
-                   [(> y (world-rows))
+                   [(>= y (world-rows))
                     (- y (world-rows))]
                    [else y]))
                (hash-set! pairs actual-x actual-y)
@@ -347,11 +367,7 @@
         [else
          ;;(printf "memoized ~a~n" memo-key)
          (hash-ref sets memo-key 'WHAT)]
-        )])))
-                                      
-                            
-        
-        
+        )])))       
   
 (define (set-cell-value! x y k v)
   (hash-set! (matrix-get-x/y the-world x y)
@@ -378,6 +394,14 @@
      (hash-set! h breed h2)
      (set-cell-value! x y 'agents h)
      ]))
+
+(define cell-agents
+  (case-lambda
+    [(x y breed)
+     (define agents (get-cell-value x y 'agents))
+     (cond
+       [agents (hash-ref agents breed)]
+       [else (make-hash)])]))
 
 
 ;; Agent interactions with world.
