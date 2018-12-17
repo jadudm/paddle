@@ -1,6 +1,7 @@
 #lang racket
 (require syntax/parse
-         racket/contract)
+         racket/contract
+         (only-in racket/draw color%))
 (require "base.rkt")
 
 ;; For this to work, I need individual agents.
@@ -26,6 +27,23 @@
   (-> agentset? agentset?)
   (hash-set! agentsets (agentset-plural as) as)
   as)
+
+;; There are 14 core colors. Whatevs.
+(define (rgb r g b)
+  (make-object color% r g b))
+
+;; We need a default fieldset for agents.
+(define (make-default-agent-fields id breed)
+  (define h (make-hash))
+  (hash-set! h 'id id)
+  (hash-set! h 'breed breed)
+  (hash-set! h 'xcor 0)
+  (hash-set! h 'ycor 0)
+  (hash-set! h 'direction (random 360))
+  (hash-set! h 'color (rgb (+ 64 (random 128))
+                           (+ 64 (random 128))
+                           (+ 64 (random 128))))
+  h)
 
 ;; There are some default agentsets.
 ;; 'turtles' is one. 'patches' is another. For simplicity, it might
@@ -99,9 +117,67 @@
     (define offset-id (+ id start-id))
     ;; FIXME
     ;; I need a default set of values in the agent's fields.
-    (define new-agent (agent offset-id breed (make-hash)))
+    (define new-agent (agent offset-id breed (make-default-agent-fields offset-id breed)))
     (add-to-agentset! as new-agent)
     )
   as)
 
+;; Now, it would be nice to be able to have a "with" form
+;; that is used as part of the agentset filtering.
+(define-syntax (with stx)
+  (syntax-case stx ()
+    [(with as bool-exp)
+     #`(let ()
+         (define subset (make-hash))
+         (for ([(id agent) (agentset-agents as)])
+           (current-agent agent)
+           (when bool-exp
+             (hash-set! subset
+                        (agent-id (current-agent))
+                        (current-agent))))
+         (agentset (agentset-breed as)
+                   (agentset-plural as)
+                   subset))
+     ]))
 
+(define-syntax (have stx)
+  (syntax-case stx ()
+    [(_ var)
+     #`(hash-ref (agent-fields (current-agent)) (quote var) false)]))
+
+
+(define-syntax (get stx)
+  (syntax-case stx ()
+    [(_ var)
+     #`(hash-ref (agent-fields (current-agent)) (quote var) false)]))
+
+(ask (with turtles (> (have id) 3))
+       (printf "id ~a~n" (agent-id (current-agent))))
+
+
+
+(create turtles 15)
+(ask (with turtles (< (agent-id (current-agent)) 3))
+     (printf "~a~n" (agent-id (current-agent))))
+
+(ask (with turtles (and (> (have id) 3)
+                        (> (have direction) 0)
+                        (< (have direction) 90)))
+       (printf "id ~a ~a~n" (get id) (get direction)))
+
+(define-syntax (gots? stx)
+  (syntax-case stx ()
+    [(_ as bool-exp)
+     #`(let ()
+         (define counter 0)
+         (for ([(id agent) (agentset-agents as)])
+           (current-agent agent)
+           (when bool-exp
+             (set! counter (add1 counter))))
+         ;; If the bool-exp was ever true, I incremented
+         ;; the counter. So, I should return true.
+         (> counter 0))
+     ]))
+
+(when (gots? turtles (> (have id) 10))
+  (printf "Turtles have ids greater than 10!~n"))
