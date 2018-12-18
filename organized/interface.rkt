@@ -24,7 +24,7 @@
   
   (for ([p pieces])
     (match p
-      [(struct slider (var as low high))
+      [(struct slider (as var low high))
        ;; When I build the gui, give all the agents the new variable.
        (give* as var)
        (for ([(id agent) (agentset-agents (as))])

@@ -10,7 +10,7 @@
 ;; The window is 600x600, so the number of
 ;; columns essentially determines the resolution and
 ;; size of the agents in the world.
-(make-world 50 50 400 400)
+(make-world 80 80 600 600)
 ;; At full speed, it runs pretty fast. This determines
 ;; the pause length between ticks of the world.
 ;; (tick-pause (/ 1 60))
@@ -26,9 +26,9 @@
 ;; To set them up, I want to do the following.
 ;; In this case, I do nothing.
 (define (setup)
-  (widgets (slider 'r turtles 1 255)
-           (slider 'g turtles 1 255)
-           (slider 'b turtles 1 255))
+  (widgets (slider turtles 'r 1 255)
+           (slider turtles 'g 1 255)
+           (slider turtles 'b 1 255))
   
   
   (ask turtles

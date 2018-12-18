@@ -100,6 +100,7 @@
   (class frame%
     (define/augment (on-close)
       (printf "The sky is falling!~n")
+      (send this show false)
       ((stop)))
     (super-new)))
 

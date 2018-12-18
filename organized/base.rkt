@@ -17,7 +17,7 @@
   (set! interface-dirty? v))
 
 (struct iv (agent-variable value agentset) #:transparent)
-(struct slider (var agentset low high)
+(struct slider (agentset var low high)
   #:transparent)
 
 
