@@ -1,4 +1,5 @@
 #lang racket
+
 (require "base.rkt"
          "agentsets.rkt"
          "world.rkt")
@@ -7,14 +8,14 @@
 ;; The window is 600x600, so the number of
 ;; columns essentially determines the resolution and
 ;; size of the agents in the world.
-(make-world 100 100 600 600)
+(make-world 100 100 400 400)
 ;; At full speed, it runs pretty fast. This determines
 ;; the pause length between ticks of the world.
-(tick-pause (/ 1 1))
+(tick-pause (/ 1 60))
 ;; I'll have a breed of agents called fish.
 (create-breed turtle turtles)
 ;; And I want this many fish.
-(create turtles 50)
+(create turtles 100)
 
 ;; Patches
 (create-patches)
@@ -33,14 +34,37 @@
   
 (define (go)
   (ask turtles
-   (move 1)
-   (wiggle)
-   )
+   (move .5)
+   (wiggle))
+
+  (ask (other turtles)
+       (set patch pcolor (rgb 0 0 0))
+       (set patch dirty? false))
+  
   (ask (with turtles (zero? (get id)))
-       (set color (rgb (modulo (+ 32 (random 32) (ticker)) 256)
-                       255
-                       (modulo (ticker) 256))))
+       ;;(printf "xcor ~a ycor ~a~n" (get xcor) (get ycor))
+       (flush-output)
+       (set patch pcolor (rgb (+ 64 (random 128))
+                              (+ 64 (random 128))
+                              (+ 64 (random 128))))
+       )
   )
+
+
+  #;(ask patches
+         (set dirty? true)
+         (set pcolor (rgb (exact-floor (* 255 (/ (get pxcor) (get world-cols))))
+                          (exact-floor (* 255 (/ (get pycor) (get world-rows))))
+                          0
+                          )))
+#;(set color (rgb (modulo (+ 32 (random 32) (ticker)) 256)
+                       255
+                       (modulo (ticker) 256)))
+
+#;(ask patches
+       (set pcolor (rgb (+ 64 (random 64))
+                        (+ 64 (random 64))
+                        (+ 64 (random 64)))))
 
 ;; One of the things fish do is wiggle. I flip a
 ;; coin, and depending on the result, I wiggle a bit

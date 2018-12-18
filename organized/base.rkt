@@ -25,9 +25,16 @@
 ;; I'll store globals in a hash.
 (define globals (make-hash))
 
+(require (for-syntax syntax/parse))
+
 (define-syntax (get stx)
-  (syntax-case stx ()
-    [(_ k)
+  (syntax-parse stx
+    [(_get (~literal global) k)
+     #`(hash-ref globals (quote k))]
+    [(_get (~literal patch) k)
+     #`(hash-ref (agent-fields (current-patch)) (quote k))]
+    
+    [(_get k)
      #`(cond
          ;; This should work for patches if patches are agents.
          [(and (current-agent)
@@ -41,7 +48,7 @@
          [(hash-has-key? globals (quote k))
           (hash-ref globals (quote k))]
          [else (error 'get "No key found for ~a" (quote k))])]
-    [(_ a k)
+    [(_get a k)
      #`(cond
          ;; This should work for patches if patches are agents.
          [(hash-has-key? (agent-fields a) (quote k))
@@ -55,14 +62,16 @@
          [else (error 'get "No key found for ~a" (quote k))])]
     ))
 
-(require (for-syntax syntax/parse))
-
 (define-syntax (set stx)
   (syntax-parse stx
     [(_set (~literal global) k:id expr:expr)
      #`(hash-set! globals (quote k) expr)]
     [(_set (~literal global) k:expr expr:expr)
      #`(hash-set! globals k expr)]
+    [(_set (~literal patch) k:id expr:expr)
+     #`(begin
+         (hash-set! (agent-fields (current-patch)) (quote k) expr)
+         (hash-set! (agent-fields (current-patch)) 'dirty? true))]
     [(_set k expr)
      #`(hash-set! (agent-fields (current-agent)) (quote k) expr)]
     [(_set a k expr)
@@ -89,22 +98,22 @@
 
 ;; These can be changed if the user chooses another edge-handling approach.
 (set global edge-x (λ (val)
-                       (define max (get world-cols))
-                       (cond
-                         [(> val max) (modulo val max)]
-                         [(< val 0) (modulo (+ max val) max)]
-                         [else val])))
-(set global edge-y (λ (val)
-                       (define max (get world-rows))
-                       (cond
-                         [(> val max) (modulo val max)]
-                         [(< val 0) (modulo (+ max val) max)]
-                         [else val])))
+                     (define max (get world-cols))
+                     (cond
+                       [(>= val max) (modulo (exact-floor val) max)]
+                       [(< val 0) (modulo (+ max val) max)]
+                       [else val])))
+     (set global edge-y (λ (val)
+                          (define max (get world-rows))
+                          (cond
+                            [(>= val max) (modulo (exact-floor val) max)]
+                            [(< val 0) (modulo (+ max val) max)]
+                            [else val])))
 
-(define (combine l1 l2)
-  (cond
-    [(empty? l1) l2]
-    [(member (first l1) l2)
-     (combine (rest l1) l2)]
-    [else
-     (cons (first l1) (combine (rest l1) l2))]))
+     (define (combine l1 l2)
+       (cond
+         [(empty? l1) l2]
+         [(member (first l1) l2)
+          (combine (rest l1) l2)]
+         [else
+          (cons (first l1) (combine (rest l1) l2))]))

@@ -61,15 +61,15 @@
      ;; it should also update all agents.
      #`(begin
          (append-agentset-base-fields! as (quote (fields ...)))
-         (printf "Dealing with ~a~n" (as))
+         ;; (printf "Dealing with ~a~n" (as))
          (for ([(id agent) (agentset-agents (as))])
-           (printf "Looking at agent ~a~n" id)
+           ;; (printf "Looking at agent ~a~n" id)
            ;; Unless they already have a value there, we'll
            ;; assign a value of zero, so every agent gets the key.
            (for ([k (quote (fields ...))])
-             (printf "Adding field: ~a~n" k)
+             ;; (printf "Adding field: ~a~n" k)
              (unless (hash-has-key? (agent-fields agent) k)
-               (printf "~a added to ~a:~a~n" k (agentset-breed (as)) id)
+               ;; (printf "~a added to ~a:~a~n" k (agentset-breed (as)) id)
                (hash-set! (agent-fields agent) k 0)))))
      ]))
 
@@ -100,6 +100,15 @@
     (glVertex3f (- turtle-x (/ 1 2)) (- turtle-y (/ 1 2)) 0)
     (glVertex3f (+ turtle-x (/ 1 2)) (- turtle-y (/ 1 2)) 0)
     (glEnd)
+
+    (glBegin GL_QUADS)
+    (glColor3ub 255 255 255)
+    (glVertex3f (- turtle-x .1) (- turtle-y .1) 0)
+    (glVertex3f (- turtle-x .1) (+ turtle-y .1) 0)
+    (glVertex3f (+ turtle-x .1) (+ turtle-y .1) 0)
+    (glVertex3f (+ turtle-x .1) (- turtle-y .1) 0)
+    (glEnd)
+    
           
     (glPopMatrix)
     ))
@@ -139,7 +148,7 @@
 ;; Returns an agentset with everything save for the current agent.
 ;; Must be executed in a context where the current agent is defined.
 (define/contract (other as)
-  (-> agentset? agentset?)
+  (-> procedure? procedure?)
   (define current-agent-id (agent-id (current-agent)))
   (define h (make-hash))
   (for ([(id agnt) (agentset-agents (as))])
@@ -147,9 +156,52 @@
     (unless (= current-agent-id id)
       (hash-set! h id agnt)))
   ;; Return a new set of agents.
-  (agentset (agentset-breed (as))
-            (agentset-plural (as))
-            h))
+  (λ () (agentset (agentset-breed (as))
+                  (agentset-plural (as))
+                  (agentset-base-fields (as))
+                  h)))
+
+
+;; Everything is in a coordinate system with OpenGL where the number of
+;; columns and rows is scaled to the height and width of the viewport.
+;; Therefore, [79.9, 79.9] will map to [79,79], which is less than 80x80.
+;; Can we ever get a value outside the range? I don't know. This has to do with
+;; whether we map by wrapping or not.
+(define (->patch a x y)
+  (define edge-y ((get global edge-y) (exact-floor y)))
+  (define edge-x ((get global edge-x) (exact-floor x)))
+  (define world-rows (get global world-rows))
+  
+  ;;(printf "\te-y ~a e-x ~a w-r ~a~n" edge-y edge-x world-rows)
+  
+  (exact-floor (+ (* edge-y world-rows) edge-x))
+  )
+
+
+(define (set-current-patch a)
+  ;; Floor the agent's position, multiply, and use
+  ;; that as a pretend patch-id to work backwards.
+  (define xcor (get a xcor))
+  (define ycor (get a ycor))
+  (define patch-id (->patch a xcor ycor))
+  
+  ;; Patches are world-cols x world-rows. And, their ids are
+  ;; (define pxcor (remainder patch-id (get world-cols)))
+  ;; (define pycor (quotient  patch-id (get world-rows))))
+  (define hash:patches (agentset-agents (hash-ref agentsets 'patches)))
+  (cond
+    [(hash-has-key? hash:patches patch-id)
+     (current-patch (hash-ref hash:patches patch-id))]
+    [else
+     (error 'set-current-patch
+            "xcor ~a ycor ~a e-x ~a e-y ~a ->patch ~a patch-id ~a~n"
+            xcor ycor
+            ((get global edge-x) (exact-floor xcor))
+            ((get global edge-y) (exact-floor ycor))
+            (->patch a xcor ycor)
+            patch-id)])
+  )
+  
 
 ;; The 'ask' macro is easier now. It isn't 'ask-turtles' and 'ask-fishes,' but instead
 ;; just 'ask' followed by an agentset.
@@ -159,6 +211,7 @@
      #`(begin
          (for ([(id agent) (agentset-agents (as))])
            (current-agent agent)
+           (set-current-patch agent)
            bodies ...)
          )]))
 
@@ -340,17 +393,40 @@
 ;; dynamic.
 (define (create-patches)
   (create patches (* (get world-cols) (get world-rows)))
-  (give patches dirty?)
+  (give patches dirty? draw pcolor pxcor pycor)
   (ask patches
-       (set dirty? false))
+       (set dirty? false)
+       (set draw draw-patch)
+       (set pxcor (quotient (get id) (get world-cols)))
+       (set pycor (remainder  (get id) (get world-rows)))
+       #;(begin
+           (printf "pid ~a px ~a py ~a~n"
+                   (get id) (get pxcor) (get pycor))
+           (sleep 1))
+       )
   )
 
-;; Everything is in a coordinate system with OpenGL where the number of
-;; columns and rows is scaled to the height and width of the viewport.
-;; Therefore, [79.9, 79.9] will map to [79,79], which is less than 80x80.
-;; Can we ever get a value outside the range? I don't know. This has to do with
-;; whether we map by wrapping or not.
-(define (->patch x y)
-  (* ((get edge-x) x)
-     ((get edge-y) y)))
+(define (draw-patch)
+  (define side 1)
+  (define col (get pxcor))
+  (define row (get pycor))
+  (let ()
+    (glBegin GL_QUADS)
+    (define r (send (get pcolor) red))
+    (define g (send (get pcolor) green))
+    (define b (send (get pcolor) blue))
+    (when (zero? (get (current-patch) id))
+      (set! r 255)
+      (set! g 255)
+      (set! b 255)
+      )
+    (glColor3ub r g b)
+    
+    (glVertex3f (+ 0 (* side row)) (+ 0 (* col side)) 0)
+    (glVertex3f (+ side (* side row)) (+ 0 (* col side)) 0)
+    (glVertex3f (+ side (* side row)) (+ side (* col side)) 0)
+    (glVertex3f (+ 0 (* side row)) (+ side (* col side)) 0)
+    (glEnd)
+    ))
+
 

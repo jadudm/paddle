@@ -24,14 +24,13 @@
   (for ([(plural as) agentsets])
     ;; Draw the patches first.
     (when (equal? plural 'patches)
-      (for ([(id critter) (agentset-agents as)])
-        (parameterize ([current-agent critter])
+      (for ([(id patch) (agentset-agents as)])
+        (parameterize ([current-agent patch]
+                       [current-patch patch])
           (when (get dirty?)
             ((get draw))
-            (set dirty? false)
+            ;;(set dirty? false)
             ))))
-      
-
     ;; Draw the agents second
     (unless (equal? plural 'patches)
       (for ([(id critter) (agentset-agents as)])
@@ -56,21 +55,7 @@
   (define side 1)
   (for ([row (get world-rows)])
     (for ([col (get world-cols)])
-      (glBegin GL_QUADS)
-      (cond
-        [(and (even? col) (even? row))
-         (glColor3ub #x80 #x80 #x80)]
-        [(even? col) (glColor3ub #xFF #xFF #xFF)]
-        [(even? row) (glColor3ub #x66 #x66 #x66 )]
-        [else (glColor3ub #x00 #x00 #x00)])
-      (glVertex3f (+ 0 (* side row)) (+ 0 (* col side)) 0)
-      (glVertex3f (+ side (* side row)) (+ 0 (* col side)) 0)
-      (glVertex3f (+ side (* side row)) (+ side (* col side)) 0)
-      (glVertex3f (+ 0 (* side row)) (+ side (* col side)) 0)
-      
-      (glEnd)
-
-      
+       'pass
       )))
 
 
@@ -107,7 +92,7 @@
 
 (define (run-world setup go)
   (setup)
-
+  
   (printf "Building frame.~n")
   (define win (new paddle-frame%
                    [label "paddle gl"]
