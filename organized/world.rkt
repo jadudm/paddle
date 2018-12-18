@@ -22,8 +22,11 @@
 (define (draw-agents)
   ;;(printf "(draw-agents)~n")
   (for ([(plural as) agentsets])
+
+    
     ;; Draw the patches first.
     (when (equal? plural 'dirty-patches)
+      ;; (printf "Drawing patches.~n")
       (for ([(id patch) (agentset-agents as)])
         (parameterize ([current-agent patch]
                        [current-patch patch])
@@ -33,19 +36,25 @@
           ;; into the dirty-patch breed. 
           ((get draw))
           )))
+
+    ;;(glClear GL_DEPTH_BUFFER_BIT)
     ;; Draw the agents second
     (when (not (member plural '(patches dirty-patches)))
+      ;; (printf "Drawing agents.~n")
       (for ([(id critter) (agentset-agents as)])
         (parameterize ([current-agent critter])
           ((get draw))
-          )))))
+          )))
+
+    
+    
+    ))
 
 (define (setup-gl-draw)
   (glClearColor 0.0 0.0 0.0 0.0)
-  (glClear GL_COLOR_BUFFER_BIT)
- 
+  (glClear (bitwise-ior GL_COLOR_BUFFER_BIT GL_DEPTH_BUFFER_BIT))
+  
   (glShadeModel GL_SMOOTH)
- 
   (glMatrixMode GL_PROJECTION)
   (glLoadIdentity)
   ;; glOrtho(0.0, 50.0, 0.0, 50.0, -1.0, 1.0);
@@ -92,6 +101,10 @@
 
 (define stop (make-parameter false))
 
+(define threads-to-kill '())
+(define (add-thread-to-kill! t)
+  (set! threads-to-kill (cons t threads-to-kill)))
+
 (define (run-world setup go)
   (setup)
   
@@ -109,15 +122,31 @@
   
   (define draw-thread
     (thread (λ ()
-                
               (sleep 1)
               (collect-garbage)
               (let loop ()
+                ;; Update turtles every third tick, if the interface is dirty.
+                (when interface-dirty?
+                  ;;(printf "ivd~n")
+                  (set-interface-dirty! false)
+                  (for ([(var ivs) interface-values])
+                    ;; For each agent in the agentset given
+                    (for ([(id agent) (agentset-agents ((iv-agentset ivs)))])
+                      ;; Set the variables in those agents.
+                      (hash-set! (agent-fields agent)
+                                 (iv-agent-variable ivs)
+                                 (iv-value ivs)))))
+                
                 (go)
                 (send gl on-paint)
                 (tick)
-                (loop)
                 
+
+                ;; Rinse and repeat
+                (loop)
                 ))))
 
-  (stop (λ () (map kill-thread (list draw-thread)))))
+  (add-thread-to-kill! draw-thread)
+  (stop (λ ()
+          (map kill-thread threads-to-kill)
+          )))

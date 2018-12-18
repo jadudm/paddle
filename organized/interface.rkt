@@ -1,0 +1,44 @@
+#lang racket/gui
+(require "base.rkt"
+         "agentsets.rkt"
+         "world.rkt")
+(provide (all-defined-out))
+
+(define (widgets . pieces)
+  (define f (new paddle-frame%
+                 [label "pokepoke"]
+                 [width 200]
+                 [height 400]))
+  (define vp (new vertical-pane%
+                  [parent f]))
+  
+  (for ([p pieces])
+    (match p
+      [(struct slider (var as low high))
+       ;; When I build the gui, give all the agents the new variable.
+       (give* as var)
+       (for ([(id agent) (agentset-agents (as))])
+         (hash-set! (agent-fields agent)
+                    var
+                    low))
+             
+       ;; Instantiate
+       (define s (new slider%
+                      [label (format "~a" var)]
+                      [min-value low]
+                      [max-value high]
+                      [parent vp]
+                      [callback (λ (widget evt)
+                                  (when (member (send evt get-event-type) '(slider))
+                                    ;;(printf "Setting interface dirty bit.~n")
+                                    (set-interface-dirty! true)
+                                    ;; send back the var, value, and agentset
+                                    (hash-set! interface-values
+                                               var
+                                               (iv var (send s get-value) as))))]
+                      ))
+       s]))
+  
+  (send f show true)
+
+  )

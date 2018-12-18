@@ -53,7 +53,26 @@
   (hash-set! agentsets (agentset-plural (as)) new-agentset))
 
 ;; This has to happen regardless of when
+(define (give* as . fields)
+  (append-agentset-base-fields! as fields)
+  ;;(printf "Dealing with ~a~n" (as))
+  (for ([(id agent) (agentset-agents (as))])
+    ;;(printf "Looking at agent ~a~n" id)
+    ;; Unless they already have a value there, we'll
+    ;; assign a value of zero, so every agent gets the key.
+    (for ([k fields])
+      ;;(printf "Adding field: ~a~n" k)
+      (unless (hash-has-key? (agent-fields agent) k)
+        ;;(printf "~a added to ~a:~a~n" k (agentset-breed (as)) id)
+        (hash-set! (agent-fields agent) k 0)))))
+
 (define-syntax (give stx)
+  (syntax-case stx ()
+    [(_ as fields ...)
+     #`(give* as (quote (fields ...)))
+     ]))
+
+(define-syntax (give-old stx)
   (syntax-case stx ()
     [(_ as fields ...)
      ;; FIXME
@@ -61,15 +80,15 @@
      ;; it should also update all agents.
      #`(begin
          (append-agentset-base-fields! as (quote (fields ...)))
-         ;; (printf "Dealing with ~a~n" (as))
+         (printf "Dealing with ~a~n" (as))
          (for ([(id agent) (agentset-agents (as))])
-           ;; (printf "Looking at agent ~a~n" id)
+           (printf "Looking at agent ~a~n" id)
            ;; Unless they already have a value there, we'll
            ;; assign a value of zero, so every agent gets the key.
            (for ([k (quote (fields ...))])
-             ;; (printf "Adding field: ~a~n" k)
+             (printf "Adding field: ~a~n" k)
              (unless (hash-has-key? (agent-fields agent) k)
-               ;; (printf "~a added to ~a:~a~n" k (agentset-breed (as)) id)
+               (printf "~a added to ~a:~a~n" k (agentset-breed (as)) id)
                (hash-set! (agent-fields agent) k 0)))))
      ]))
 
@@ -84,7 +103,9 @@
     (define turtle-x (get xcor))
     (define turtle-y (get ycor))
     ;;(printf "a ~a x ~a y ~a~n" (agent-id (current-agent)) turtle-x turtle-y)
+    ;; (glClear GL_DEPTH_BUFFER_BIT)
     (glPushMatrix)
+    
     (glTranslatef turtle-x turtle-y 0)
     (glRotatef (get direction) 0 0 1)
     (glTranslatef (- turtle-x) (- turtle-y) 0)
@@ -95,6 +116,7 @@
     (glColor3ub (send color-obj red)
                 (send color-obj green)
                 (send color-obj blue))
+    
     ;; FIXME This does not center the agent in a square.          
     (glVertex3f turtle-x (+ (/ 1 2) turtle-y) 0)
     (glVertex3f (- turtle-x (/ 1 2)) (- turtle-y (/ 1 2)) 0)
@@ -107,9 +129,8 @@
     (glVertex3f (- turtle-x .1) (+ turtle-y .1) 0)
     (glVertex3f (+ turtle-x .1) (+ turtle-y .1) 0)
     (glVertex3f (+ turtle-x .1) (- turtle-y .1) 0)
+    (glColor3ub 0 0 0)
     (glEnd)
-    
-          
     (glPopMatrix)
     ))
 
@@ -409,17 +430,18 @@
     (define r (send (get pcolor) red))
     (define g (send (get pcolor) green))
     (define b (send (get pcolor) blue))
-    (when (zero? (get (current-patch) id))
-      (set! r 255)
-      (set! g 255)
-      (set! b 255)
-      )
+
+    #;(when (zero? (get (current-patch) id))
+        (set! r 255)
+        (set! g 255)
+        (set! b 255)
+        )
     (glColor3ub r g b)
     
-    (glVertex3f (+ 0 (* side row)) (+ 0 (* col side)) 0)
-    (glVertex3f (+ side (* side row)) (+ 0 (* col side)) 0)
-    (glVertex3f (+ side (* side row)) (+ side (* col side)) 0)
-    (glVertex3f (+ 0 (* side row)) (+ side (* col side)) 0)
+    (glVertex3f (+ 0 (* side row)) (+ 0 (* col side)) 0.01)
+    (glVertex3f (+ side (* side row)) (+ 0 (* col side)) 0.01)
+    (glVertex3f (+ side (* side row)) (+ side (* col side)) 0.01)
+    (glVertex3f (+ 0 (* side row)) (+ side (* col side)) 0.01)
     (glEnd)
     ))
 

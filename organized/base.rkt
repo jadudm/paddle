@@ -10,6 +10,17 @@
 (struct agentset (breed plural base-fields agents)
   #:transparent #:mutable)
 
+;; For getting values from the interface.
+(define interface-values (make-hash))
+(define interface-dirty? false)
+(define (set-interface-dirty! v)
+  (set! interface-dirty? v))
+
+(struct iv (agent-variable value agentset) #:transparent)
+(struct slider (var agentset low high)
+  #:transparent)
+
+
 
 ;; Adding agents to an agentset should be easy.
 (define/contract (add-to-agentset! λ:as ag)
