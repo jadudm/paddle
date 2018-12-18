@@ -92,6 +92,12 @@
                                      (agent-fields (current-patch))))
             (add-to-agentset! (λ () (hash-ref agentsets 'dirty-patches)) new-agent)]
            [else
+            ;; FIXME
+            ;; If we were dirty, and are now clean, then the state of the dirty patch
+            ;; should be moved over to the clean set. This way, if (say) some kind of
+            ;; tracking variable was being used, it would carry over. The dirtyness really
+            ;; only has to do with whether we should redraw the patch, not whether
+            ;; it should have its brain wiped.
             (remove-from-agentset! (λ () (hash-ref agentsets 'dirty-patches))
                                    (agent-id (current-patch)))])
          )]
