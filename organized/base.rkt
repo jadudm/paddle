@@ -10,26 +10,20 @@
 (struct agentset (breed plural base-fields agents)
   #:transparent #:mutable)
 
+;; A critical part of NetLogo is keeping track of all of the agents.
+;; There are "default" agent sets, as well as new agent sets that the
+;; user can introduce (eg. breed [fish fishes]). I need a way
+;; to track all of these agent sets.
+;;
+;; agentsets are keyed by their plural.
+(define agentsets (make-hash))
+
 (define current-agent (make-parameter false))
 (define current-patch (make-parameter false))
 
 ;; Globals
 ;; I'll store globals in a hash.
 (define globals (make-hash))
-
-;; And, provide an ADT.
-;(define (set-global! k v) (hash-set! globals k v))
-(define-syntax (set-global! stx)
-  (syntax-case stx ()
-    [(_ k v)
-     #`(hash-set! globals (quote k) v)]))
-
-(define-syntax (get-global stx)
-  (syntax-case stx ()
-    [(_ k)
-     #`(hash-ref globals (quote k) false)]
-    [(_ k missing)
-     #`(hash-ref globals (quote k) missing)]))
 
 (define-syntax (get stx)
   (syntax-case stx ()
@@ -89,19 +83,19 @@
 
 ;; Calculated globals
 (define (set-frame-dimensions)
-  (set global frame-width  (quotient 600 (get-global world-cols)))
-  (set global frame-height (quotient 600 (get-global world-rows))))
+  (set global frame-width  (quotient 600 (get world-cols)))
+  (set global frame-height (quotient 600 (get world-rows))))
 
 
 ;; These can be changed if the user chooses another edge-handling approach.
 (set global edge-x (λ (val)
-                       (define max (get-global world-cols))
+                       (define max (get world-cols))
                        (cond
                          [(> val max) (modulo val max)]
                          [(< val 0) (modulo (+ max val) max)]
                          [else val])))
 (set global edge-y (λ (val)
-                       (define max (get-global world-rows))
+                       (define max (get world-rows))
                        (cond
                          [(> val max) (modulo val max)]
                          [(< val 0) (modulo (+ max val) max)]
