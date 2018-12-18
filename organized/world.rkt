@@ -53,6 +53,10 @@
 (define (setup-gl-draw)
   (glClearColor 0.0 0.0 0.0 0.0)
   (glClear (bitwise-ior GL_COLOR_BUFFER_BIT GL_DEPTH_BUFFER_BIT))
+
+  ;;(glClearDepth 1.0)
+  (glDepthFunc GL_LEQUAL)
+  (glEnable GL_DEPTH_TEST)
   
   (glShadeModel GL_SMOOTH)
   (glMatrixMode GL_PROJECTION)
@@ -109,10 +113,16 @@
   (setup)
   
   (printf "Building frame.~n")
+  (define-values (screen-x screen-y)
+    (get-display-size))
+  
   (define win (new paddle-frame%
                    [label "paddle gl"]
                    [min-width  (get global frame-width)]
-                   [min-height (get global frame-height)]))
+                   [min-height (get global frame-height)]
+                   [x (- screen-x (get global frame-width) 50)]
+                   [y 50]
+                   ))
 
   (printf "Building canvas.~n")
   (define gl  (new paddle-canvas%
@@ -122,8 +132,9 @@
   
   (define draw-thread
     (thread (λ ()
+              (collect-garbage 'major)
               (sleep 1)
-              (collect-garbage)
+
               (let loop ()
                 ;; Update turtles every third tick, if the interface is dirty.
                 (when interface-dirty?

@@ -5,10 +5,20 @@
 (provide (all-defined-out))
 
 (define (widgets . pieces)
+  (define-values (screen-x screen-y)
+    (get-display-size))
+
+  (define frame-width 200)
   (define f (new paddle-frame%
                  [label "pokepoke"]
-                 [width 200]
-                 [height 400]))
+                 [width frame-width]
+                 [height 400]
+                 [x (- screen-x
+                       (get global frame-width)
+                       frame-width
+                       50 50)]
+                 [y 50]
+                 ))
   (define vp (new vertical-pane%
                   [parent f]))
   
