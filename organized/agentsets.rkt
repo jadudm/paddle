@@ -37,19 +37,12 @@
 
 ;; Adding fields to a things...
 (define (append-agentset-base-fields! as fields)
-  ;; We have to add this to every agent.
-  (define agents (for/hash ([(id agent)
-                             (agentset-agents (as))])
-                   ;; Hopefully my set macro works...
-                   ;; FIXME handle boolean? defaults.
-                   (set agent field 0)
-                   (values id agent)))
   ;; And build a new agentset.
   (define new-agentset
     (agentset (agentset-breed (as))
               (agentset-plural (as))
               (combine (agentset-base-fields (as)) fields)
-              agents))
+              (agentset-agents (as))))
   (hash-set! agentsets (agentset-plural (as)) new-agentset))
 
 ;; This has to happen regardless of when
@@ -60,7 +53,10 @@
      ;; This sets the global params for the agentset. However,
      ;; it should also update all agents.
      #`(begin
+         ;; First, extend the fields the agentset carries.
          (append-agentset-base-fields! as (quote (fields ...)))
+
+         ;; Then, extend all of the existing agents.
          ;; (printf "Dealing with ~a~n" (as))
          (for ([(id agent) (agentset-agents (as))])
            ;; (printf "Looking at agent ~a~n" id)
@@ -70,7 +66,7 @@
              ;; (printf "Adding field: ~a~n" k)
              (unless (hash-has-key? (agent-fields agent) k)
                ;; (printf "~a added to ~a:~a~n" k (agentset-breed (as)) id)
-               (hash-set! (agent-fields agent) k 0)))))
+               (hash-set! (agent-fields agent) k 'default)))))
      ]))
 
 ;; FIXME: There are 14 core colors.
@@ -202,11 +198,29 @@
   (syntax-case stx ()
     [(_ as bodies ...)
      #`(begin
+         (cond
+           [(equal? (agentset-breed (as)) 'patch)
+            (printf "Asking (= patch ~a).~n" (agentset-breed (as)))
+            (for ([(id agent) (agentset-agents (as))])
+              (current-agent agent)
+              (current-patch agent)
+              bodies ...)]
+           [else
+            (printf "Asking ~a.~n" (agentset-breed (as)))
+            (for ([(id agent) (agentset-agents (as))])
+              (current-agent agent)
+              (set-current-patch agent)
+              bodies ...)]
+         ))]))
+
+(define-syntax (ask2 stx)
+  (syntax-case stx ()
+    [(_ as bodies ...)
+     #`(begin
          (for ([(id agent) (agentset-agents (as))])
-           (current-agent agent)
-           (set-current-patch agent)
-           bodies ...)
-         )]))
+              (current-agent agent)
+              (set-current-patch agent)
+              bodies ...))]))
 
 ;; However, I can't test anything yet, because I can't create any agentsets.
 ;; I need to be able to do that. I could 'create-turtles', and then I need
@@ -227,11 +241,18 @@
   (define h (agentset-agents (λ:as)))
   (define breed (agentset-breed (λ:as)))
   (define start-id (hash-count h))
+ 
   (for ([id (range num)])
     (define offset-id (+ id start-id))
+    (when (zero? (modulo id 1000))
+      (printf "\tc: ~a~n" id))
+    
     ;; FIXME
     ;; I need a default set of values in the agent's fields.
-    (define default-fields (make-default-agent-fields offset-id breed))
+    (define default-fields (make-hash))
+    (unless (equal? breed 'patch)
+      (set! default-fields (make-default-agent-fields offset-id breed)))
+    
     ;; Add in the fields that have been added.
     (for ([f (agentset-base-fields (λ:as))])
       (unless (hash-has-key? default-fields f)
@@ -387,28 +408,35 @@
 ;; dynamic.
 (define (create-patches)
   (create patches (* (get global world-cols) (get global world-rows)))
+
   (give patches dirty? draw pcolor pxcor pycor)
+  
+  (define counter 0)
   (ask patches
-       (set dirty? false)
-       (set draw draw-patch)
-       (set pxcor (quotient (get id) (get global world-cols)))
-       (set pycor (remainder  (get id) (get global world-rows)))
-       #;(begin
-           (printf "pid ~a px ~a py ~a~n"
-                   (get id) (get patch pxcor) (get patch pycor))
-           (sleep 1))
+       (set patch* dirty? false)
+       (printf "setting patch ~a~n" (get patch id))
+       (printf "\tpatch ~a~n" (get (current-agent) id))
+       
+       (set patch* id (get patch id))
+       (set patch* draw draw-patch)
+       (set patch* pxcor (quotient (get patch id) (get global world-cols)))
+       (set patch* pycor (remainder  (get patch id) (get global world-rows)))
+       
+       (set! counter (add1 counter))
+       (when (zero? (modulo counter 1000))
+         (printf "\tcreate-patches: ~a~n" counter))
        )
   )
 
 (define (draw-patch)
   (define side 1)
-  (define col (get pxcor))
-  (define row (get pycor))
+  (define col (get patch pxcor))
+  (define row (get patch pycor))
   (let ()
     (glBegin GL_QUADS)
-    (define r (send (get pcolor) red))
-    (define g (send (get pcolor) green))
-    (define b (send (get pcolor) blue))
+    (define r (send (get patch pcolor) red))
+    (define g (send (get patch pcolor) green))
+    (define b (send (get patch pcolor) blue))
     (when (zero? (get (current-patch) id))
       (set! r 255)
       (set! g 255)

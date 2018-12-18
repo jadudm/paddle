@@ -24,14 +24,14 @@
   (for ([(plural as) agentsets])
     ;; Draw the patches first.
     (when (equal? plural 'dirty-patches)
-      (for ([(id patch) (agentset-agents as)])
-        (parameterize ([current-agent patch]
-                       [current-patch patch])
+      (for ([(id p) (agentset-agents as)])
+        (parameterize ([current-agent p]
+                       [current-patch p])
           ;; FIXME The alternative is to go through all patches
           ;; and decide if they're dirty. Instead, I've instrumented
           ;; (set patch ...) so that it tracks dirtyness, and moves dirty patches
           ;; into the dirty-patch breed. 
-          ((get draw))
+          ((get p draw))
           )))
     ;; Draw the agents second
     (when (not (member plural '(patches dirty-patches)))

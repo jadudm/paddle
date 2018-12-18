@@ -10,7 +10,6 @@
 (struct agentset (breed plural base-fields agents)
   #:transparent #:mutable)
 
-
 ;; Adding agents to an agentset should be easy.
 (define/contract (add-to-agentset! λ:as ag)
   (-> procedure? agent? agent?)
@@ -44,33 +43,40 @@
 (require (for-syntax syntax/parse))
 
 (define-syntax (get stx)
-  (syntax-parse stx
+  (syntax-parse stx #:datum-literals (global patch)
     [(_get (~literal global) k)
      #`(hash-ref globals (quote k))]
 
     [(_get (~literal patch) k)
      #`(cond
-         [(hash-ref (agent-fields (current-patch)) 'dirty?)
-          (define patch (hash-ref
-                         (agentset-agents (hash-ref agentsets 'dirty-patches))
-                         (agent-id (current-patch))))
-          (hash-ref patch (quote k))]
+         [(hash-ref (agent-fields (current-patch)) 'dirty? false)
+          (printf "gdp: ~a (dirty? ~a)~n"
+                  (agent-id (current-patch))
+                  (hash-ref (agent-fields (current-patch)) 'dirty? false))
+          (define p (hash-ref
+                     (agentset-agents (hash-ref agentsets 'dirty-patches))
+                     (agent-id (current-patch))))
+          (hash-ref (agent-fields p) (quote k))]
          [else
           (hash-ref (agent-fields (current-patch)) (quote k))])]
+
+    [(_get a:expr k:id)
+     #`(begin
+         (printf "plain get: ~a ~a~n" (agent-id (current-agent)) (quote k))
+         (cond
+           ;; This should work for patches if patches are agents.
+           [(hash-has-key? (agent-fields a) (quote k))
+            (hash-ref (agent-fields a) (quote k))]
+           [else (error 'get "No key found for ~a" (quote k))]))]
     
-    [(_get k)
+    [(_get k:id)
      #`(cond
          ;; This should work for patches if patches are agents.
          [(and (current-agent)
                (hash-has-key? (agent-fields (current-agent)) (quote k)))
           (hash-ref (agent-fields (current-agent)) (quote k))]
          [else (error 'get "No key found for ~a" (quote k))])]
-    [(_get a k)
-     #`(cond
-         ;; This should work for patches if patches are agents.
-         [(hash-has-key? (agent-fields a) (quote k))
-          (hash-ref (agent-fields a) (quote k))]
-         [else (error 'get "No key found for ~a" (quote k))])]
+    
     ))
 
 (define-syntax (set stx)
@@ -81,6 +87,11 @@
     [(_set (~literal global) k:expr expr:expr)
      #`(hash-set! globals k expr)]
 
+    [(_set (~literal patch*) k:id expr:expr)
+     #`(begin
+         ;; (printf "p*: ~a~n" (quote k))
+         (hash-set! (agent-fields (current-patch)) (quote k) expr))]
+    
     [(_set (~literal patch) k:id expr:expr)
      #`(begin
          (hash-set! (agent-fields (current-patch)) 'dirty? true)
@@ -99,12 +110,16 @@
             ;; only has to do with whether we should redraw the patch, not whether
             ;; it should have its brain wiped.
             (remove-from-agentset! (λ () (hash-ref agentsets 'dirty-patches))
-                                   (agent-id (current-patch)))])
-         )]
+                                   (agent-id (current-patch)))]))]    
+            
     [(_set k expr)
      #`(hash-set! (agent-fields (current-agent)) (quote k) expr)]
-    [(_set a k expr)
-     #`(hash-set! (agent-fields a) (quote k) expr)]    
+
+    [(_set a k:id expr)
+     #`(hash-set! (agent-fields a) (quote k) expr)]
+
+    [(_set a k:expr expr)
+     #`(hash-set! (agent-fields a) k expr)]
     ))
 
 
@@ -132,17 +147,17 @@
                        [(>= val max) (modulo (exact-floor val) max)]
                        [(< val 0) (modulo (+ max val) max)]
                        [else val])))
-     (set global edge-y (λ (val)
-                          (define max (get global world-rows))
-                          (cond
-                            [(>= val max) (modulo (exact-floor val) max)]
-                            [(< val 0) (modulo (+ max val) max)]
-                            [else val])))
+(set global edge-y (λ (val)
+                     (define max (get global world-rows))
+                     (cond
+                       [(>= val max) (modulo (exact-floor val) max)]
+                       [(< val 0) (modulo (+ max val) max)]
+                       [else val])))
 
-     (define (combine l1 l2)
-       (cond
-         [(empty? l1) l2]
-         [(member (first l1) l2)
-          (combine (rest l1) l2)]
-         [else
-          (cons (first l1) (combine (rest l1) l2))]))
+(define (combine l1 l2)
+  (cond
+    [(empty? l1) l2]
+    [(member (first l1) l2)
+     (combine (rest l1) l2)]
+    [else
+     (cons (first l1) (combine (rest l1) l2))]))

@@ -8,17 +8,40 @@
 ;; The window is 600x600, so the number of
 ;; columns essentially determines the resolution and
 ;; size of the agents in the world.
-(make-world 100 100 400 400)
+(make-world 10 10 100 100)
+
+;; Patches
+;(create-patches)
+(create patches (* (get global world-cols) (get global world-rows)))
+
+  (give patches dirty? draw pcolor pxcor pycor)
+  
+  (define counter 0)
+  (ask patches
+       (set patch* dirty? false)
+
+       ;; This only reports 0.
+       (printf "setting patch ~a~n" (get patch id))
+       
+       (set patch* id (get patch id))
+       (set patch* draw draw-patch)
+       (set patch* pxcor (quotient (get patch id) (get global world-cols)))
+       (set patch* pycor (remainder  (get patch id) (get global world-rows)))
+       
+       (set! counter (add1 counter))
+       (when (zero? (modulo counter 1000))
+         (printf "\tcreate-patches: ~a~n" counter))
+       )
+
+
 ;; At full speed, it runs pretty fast. This determines
 ;; the pause length between ticks of the world.
-;(tick-pause (/ 1 60))
+(tick-pause (/ 1 1))
 ;; I'll have a breed of agents called fish.
 (create-breed turtle turtles)
 ;; And I want this many fish.
-(create turtles 300)
+(create turtles 1)
 
-;; Patches
-(create-patches)
 
 ;; To set them up, I want to do the following.
 ;; In this case, I do nothing.
@@ -33,7 +56,7 @@
   )
   
 (define (go)
-  #;(when (zero? (modulo (ticker) 120))
+  (when (zero? (modulo (ticker) 120))
     (printf "dp: ~a~n" (hash-count (agentset-agents (hash-ref agentsets 'dirty-patches)))))
   
   (ask turtles
@@ -83,4 +106,5 @@
 
 
 ;; Finally, we run the world.
+(sleep 5)
 (run-world setup go)
