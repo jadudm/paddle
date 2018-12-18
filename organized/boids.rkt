@@ -7,7 +7,7 @@
          )
 
 ;; I must create the world first.
-(make-world 80 80 600 600)
+(make-world 30 30 600 600)
 
 ;; The world does not always need patches.
 ;; This world does.
@@ -17,10 +17,10 @@
 (create-breed turtle turtles)
 
 ;; I want many turtles.
-(create turtles 300)
+(create turtles 50)
 
 ;; I could slow things down.
-;; (tick-pause (/ 1 60))
+(tick-pause (/ 1 60))
 
 ;; I want to set up my turtles.
 (define (setup)
@@ -39,8 +39,10 @@
    )
 
   ;; Only a special few of my turtles are yellow.
-  (ask (with turtles (member (get id) (range 5)))
-       (set color (rgb 255 255 0)))
+  (ask (with turtles (zero? (get id)))
+       (set color (rgb 255 255 0))
+       )
+
   )
 
 
@@ -50,7 +52,7 @@
   ;; First, I ask all my turtles to wiggle and then move.
   (ask turtles
    (wiggle)
-   (move 1)
+   (move 0.25)
    )
   
   ;; Then, I ask all the not-special turtles to clear the patch
@@ -60,11 +62,16 @@
 
   ;; Finally,  I ask the special turtles to use the slider values
   ;; to set their patches to a pretty color.
-  (ask (with turtles (member (get id) (range 5)))
-           (set patch pcolor (rgb (random (get r)) 
-                                  (random (get g))
-                                  (random (get b))
-                                  )))
+  (ask (with turtles (zero? (get id)))
+       (set patch pcolor (rgb (random (get r)) 
+                              (random (get g))
+                              (random (get b))
+                              ))
+       
+       (ask (with (sniff 2) (not (zero? (get id))))
+            ;;(printf "found ~a~n" (get (current-agent) id))
+            (shimmer (current-agent))
+            ))
   )
 
 ;; One of the things fish do is wiggle. I flip a
@@ -77,8 +84,8 @@
 
 ;; Shimmering means we randomly choose a new color.
 ;; None of my turtles currently shimmer.
-(define (shimmer)
-  (set color (rgb (+ 128 (random 64))
+(define (shimmer a)
+  (set a color (rgb (+ 128 (random 64))
                   (+ 128 (random 64))
                   (+ 128 (random 64)))))
 

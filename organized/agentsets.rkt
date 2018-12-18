@@ -18,7 +18,8 @@
                                  (quote plural)
                                  (hash-keys (make-default-agent-fields
                                              'unused-id
-                                             (quote breed)))
+                                             (quote breed)
+                                             (quote plural)))
                                  (make-hash)))
          (define plural
            (λ () (hash-ref agentsets (quote plural))))
@@ -135,11 +136,12 @@
     ))
 
 ;; We need a default fieldset for agents.
-(define/contract (make-default-agent-fields id breed)
-  (-> (or/c symbol? number?) symbol? hash?) 
+(define/contract (make-default-agent-fields id breed plural)
+  (-> (or/c symbol? number?) symbol? symbol? hash?) 
   (define h (make-hash))
   (hash-set! h 'id id)
   (hash-set! h 'breed breed)
+  (hash-set! h 'plural plural)
   (hash-set! h 'xcor 0)
   (hash-set! h 'ycor 0)
   (hash-set! h 'direction (random 360))
@@ -147,6 +149,8 @@
                            (+ 64 (random 128))
                            (+ 64 (random 128))))
   (hash-set! h 'draw default-draw-function)
+  ;; What patch are we over?
+  (hash-set! h 'patch-id 0)
   h)
 
 
@@ -181,7 +185,7 @@
 ;; Therefore, [79.9, 79.9] will map to [79,79], which is less than 80x80.
 ;; Can we ever get a value outside the range? I don't know. This has to do with
 ;; whether we map by wrapping or not.
-(define (->patch a x y)
+(define (->patch x y)
   (define edge-y ((get global edge-y) (exact-floor y)))
   (define edge-x ((get global edge-x) (exact-floor x)))
   (define world-rows (get global world-rows))
@@ -197,7 +201,7 @@
   ;; that as a pretend patch-id to work backwards.
   (define xcor (get a xcor))
   (define ycor (get a ycor))
-  (define patch-id (->patch a xcor ycor))
+  (define patch-id (->patch xcor ycor))
   
   ;; Patches are world-cols x world-rows. And, their ids are
   ;; (define pxcor (remainder patch-id (get world-cols)))
@@ -212,10 +216,52 @@
             xcor ycor
             ((get global edge-x) (exact-floor xcor))
             ((get global edge-y) (exact-floor ycor))
-            (->patch a xcor ycor)
+            (->patch xcor ycor)
             patch-id)])
   )
-  
+
+(define (generate-radius x y r)
+  (define points empty)
+  (for ([x-range (range (- x r) (+ x r))])
+    (for ([y-range (range (- y r) (+ y r))])
+      (set! points (cons (list x-range y-range) points))))
+  points)
+
+(define sniff
+  (case-lambda
+    [(radius)
+     (sniff current-agent radius)]
+    [(current-agent radius)
+     (define points (generate-radius
+                     (get (current-agent) xcor)
+                     (get (current-agent) ycor)
+                     radius))
+     
+     ;; (printf "~a points: ~a~n" (length points) points)
+     
+     (define patch-ids (map ->patch
+                            (map first points)
+                            (map second points)))
+     #;(printf "agent ~a w/ patch-id ~a looking at patches ~a~n"
+             (get (current-agent) id)
+             (get (current-agent) patch-id)
+             patch-ids)
+     
+     (define found (make-hash))
+     (define as-plural (hash-ref (agent-fields (current-agent)) 'plural))
+     (define as (λ () (hash-ref agentsets as-plural)))
+     (for ([(id agent) (agentset-agents (as))])
+       (define nearby-agent-pid (hash-ref (agent-fields agent) 'patch-id))
+       (when (member nearby-agent-pid  patch-ids)
+         ;;(printf "patch-id ~a in ~a~n" nearby-agent-pid  patch-ids)
+         (hash-set! found id agent)))
+     ;; (struct agentset (breed plural base-fields agents)
+     (λ ()  (agentset (agentset-breed (as))
+                      (agentset-plural (as))
+                      (agentset-base-fields (as))
+                      found))
+     ]))
+           
 
 ;; The 'ask' macro is easier now. It isn't 'ask-turtles' and 'ask-fishes,' but instead
 ;; just 'ask' followed by an agentset.
@@ -247,12 +293,13 @@
   (-> procedure? number? procedure?)
   (define h (agentset-agents (λ:as)))
   (define breed (agentset-breed (λ:as)))
+  (define plural (agentset-plural (λ:as)))
   (define start-id (hash-count h))
   (for ([id (range num)])
     (define offset-id (+ id start-id))
     ;; FIXME
     ;; I need a default set of values in the agent's fields.
-    (define default-fields (make-default-agent-fields offset-id breed))
+    (define default-fields (make-default-agent-fields offset-id breed plural))
     ;; Add in the fields that have been added.
     (for ([f (agentset-base-fields (λ:as))])
       (unless (hash-has-key? default-fields f)
@@ -378,6 +425,9 @@
   (set (current-agent)
        ycor
        (wrap new-y (get global world-cols)))
+  (set (current-agent)
+       patch-id
+       (->patch (get xcor) (get ycor)))
   )
 
 (define (right d)
