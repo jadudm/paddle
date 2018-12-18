@@ -23,16 +23,18 @@
   ;;(printf "(draw-agents)~n")
   (for ([(plural as) agentsets])
     ;; Draw the patches first.
-    (when (equal? plural 'patches)
+    (when (equal? plural 'dirty-patches)
       (for ([(id patch) (agentset-agents as)])
         (parameterize ([current-agent patch]
                        [current-patch patch])
-          (when (get dirty?)
-            ((get draw))
-            ;;(set dirty? false)
-            ))))
+          ;; FIXME The alternative is to go through all patches
+          ;; and decide if they're dirty. Instead, I've instrumented
+          ;; (set patch ...) so that it tracks dirtyness, and moves dirty patches
+          ;; into the dirty-patch breed. 
+          ((get draw))
+          )))
     ;; Draw the agents second
-    (unless (equal? plural 'patches)
+    (when (not (member plural '(patches dirty-patches)))
       (for ([(id critter) (agentset-agents as)])
         (parameterize ([current-agent critter])
           ((get draw))
@@ -47,14 +49,14 @@
   (glMatrixMode GL_PROJECTION)
   (glLoadIdentity)
   ;; glOrtho(0.0, 50.0, 0.0, 50.0, -1.0, 1.0);
-  (glOrtho 0.0 (get world-rows) 0.0 (get world-cols) -1.0 1.0)
+  (glOrtho 0.0 (get global world-rows) 0.0 (get global world-cols) -1.0 1.0)
   (glMatrixMode GL_MODELVIEW)
   (glLoadIdentity))
 
 (define (draw-grid)
   (define side 1)
-  (for ([row (get world-rows)])
-    (for ([col (get world-cols)])
+  (for ([row (get global world-rows)])
+    (for ([col (get global world-cols)])
        'pass
       )))
 
@@ -96,8 +98,8 @@
   (printf "Building frame.~n")
   (define win (new paddle-frame%
                    [label "paddle gl"]
-                   [min-width  (get frame-width)]
-                   [min-height (get frame-height)]))
+                   [min-width  (get global frame-width)]
+                   [min-height (get global frame-height)]))
 
   (printf "Building canvas.~n")
   (define gl  (new paddle-canvas%

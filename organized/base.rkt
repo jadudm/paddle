@@ -10,6 +10,22 @@
 (struct agentset (breed plural base-fields agents)
   #:transparent #:mutable)
 
+
+;; Adding agents to an agentset should be easy.
+(define/contract (add-to-agentset! λ:as ag)
+  (-> procedure? agent? agent?)
+  (define agents (hash-copy (agentset-agents (λ:as))))
+  (hash-set! agents (agent-id ag) ag)
+  (set-agentset-agents! (λ:as) agents)
+  ag)
+
+(define/contract (remove-from-agentset! λ:as ag:id)
+  (-> procedure? number? number?)
+  (define agents (hash-copy (agentset-agents (λ:as))))
+  (hash-remove! agents ag:id)
+  (set-agentset-agents! (λ:as) agents)
+  ag:id)
+
 ;; A critical part of NetLogo is keeping track of all of the agents.
 ;; There are "default" agent sets, as well as new agent sets that the
 ;; user can introduce (eg. breed [fish fishes]). I need a way
@@ -31,8 +47,16 @@
   (syntax-parse stx
     [(_get (~literal global) k)
      #`(hash-ref globals (quote k))]
+
     [(_get (~literal patch) k)
-     #`(hash-ref (agent-fields (current-patch)) (quote k))]
+     #`(cond
+         [(hash-ref (agent-fields (current-patch)) 'dirty?)
+          (define patch (hash-ref
+                         (agentset-agents (hash-ref agentsets 'dirty-patches))
+                         (agent-id (current-patch))))
+          (hash-ref patch (quote k))]
+         [else
+          (hash-ref (agent-fields (current-patch)) (quote k))])]
     
     [(_get k)
      #`(cond
@@ -40,25 +64,12 @@
          [(and (current-agent)
                (hash-has-key? (agent-fields (current-agent)) (quote k)))
           (hash-ref (agent-fields (current-agent)) (quote k))]
-         ;; This is a fallback. It lets a turtle get the pcolor, and
-         ;; it will return a value based on the [x, y] of the turtle.
-         [(and (current-patch)
-               (hash-has-key? (agent-fields (current-patch)) (quote k)))
-          (hash-ref (agent-fields (current-patch)) (quote k))]
-         [(hash-has-key? globals (quote k))
-          (hash-ref globals (quote k))]
          [else (error 'get "No key found for ~a" (quote k))])]
     [(_get a k)
      #`(cond
          ;; This should work for patches if patches are agents.
          [(hash-has-key? (agent-fields a) (quote k))
           (hash-ref (agent-fields a) (quote k))]
-         ;; This is a fallback. It lets a turtle get the pcolor, and
-         ;; it will return a value based on the [x, y] of the turtle.
-         [(hash-has-key? (agent-fields a) (quote k))
-          (hash-ref (agent-fields a) (quote k))]
-         [(hash-has-key? globals (quote k))
-          (hash-ref globals (quote k))]
          [else (error 'get "No key found for ~a" (quote k))])]
     ))
 
@@ -66,12 +77,24 @@
   (syntax-parse stx
     [(_set (~literal global) k:id expr:expr)
      #`(hash-set! globals (quote k) expr)]
+
     [(_set (~literal global) k:expr expr:expr)
      #`(hash-set! globals k expr)]
+
     [(_set (~literal patch) k:id expr:expr)
      #`(begin
+         (hash-set! (agent-fields (current-patch)) 'dirty? true)
          (hash-set! (agent-fields (current-patch)) (quote k) expr)
-         (hash-set! (agent-fields (current-patch)) 'dirty? true))]
+         (cond
+           [(get (current-patch) dirty?)
+            (define new-agent (agent (agent-id (current-patch))
+                                     'patch
+                                     (agent-fields (current-patch))))
+            (add-to-agentset! (λ () (hash-ref agentsets 'dirty-patches)) new-agent)]
+           [else
+            (remove-from-agentset! (λ () (hash-ref agentsets 'dirty-patches))
+                                   (agent-id (current-patch)))])
+         )]
     [(_set k expr)
      #`(hash-set! (agent-fields (current-agent)) (quote k) expr)]
     [(_set a k expr)
@@ -98,13 +121,13 @@
 
 ;; These can be changed if the user chooses another edge-handling approach.
 (set global edge-x (λ (val)
-                     (define max (get world-cols))
+                     (define max (get global world-cols))
                      (cond
                        [(>= val max) (modulo (exact-floor val) max)]
                        [(< val 0) (modulo (+ max val) max)]
                        [else val])))
      (set global edge-y (λ (val)
-                          (define max (get world-rows))
+                          (define max (get global world-rows))
                           (cond
                             [(>= val max) (modulo (exact-floor val) max)]
                             [(< val 0) (modulo (+ max val) max)]

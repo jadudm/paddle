@@ -11,11 +11,11 @@
 (make-world 100 100 400 400)
 ;; At full speed, it runs pretty fast. This determines
 ;; the pause length between ticks of the world.
-(tick-pause (/ 1 60))
+;(tick-pause (/ 1 60))
 ;; I'll have a breed of agents called fish.
 (create-breed turtle turtles)
 ;; And I want this many fish.
-(create turtles 100)
+(create turtles 300)
 
 ;; Patches
 (create-patches)
@@ -24,26 +24,27 @@
 ;; In this case, I do nothing.
 (define (setup)
   (ask turtles
-   (set xcor (random (get world-cols)))
-   (set ycor (random (get world-rows)))
+   (set xcor (random (get global world-cols)))
+   (set ycor (random (get global world-rows)))
    (set color (rgb 255 0 0))
    )
-  (ask (with turtles (zero? (get id)))
+  (ask (with turtles (member (get id) (range 5)))
        (set color (rgb 255 255 0)))
   )
   
 (define (go)
+  #;(when (zero? (modulo (ticker) 120))
+    (printf "dp: ~a~n" (hash-count (agentset-agents (hash-ref agentsets 'dirty-patches)))))
+  
   (ask turtles
-   (move .5)
+   (move 1)
    (wiggle))
 
   (ask (other turtles)
        (set patch pcolor (rgb 0 0 0))
        (set patch dirty? false))
   
-  (ask (with turtles (zero? (get id)))
-       ;;(printf "xcor ~a ycor ~a~n" (get xcor) (get ycor))
-       (flush-output)
+  (ask (with turtles (member (get id) (range 5)))
        (set patch pcolor (rgb (+ 64 (random 128))
                               (+ 64 (random 128))
                               (+ 64 (random 128))))

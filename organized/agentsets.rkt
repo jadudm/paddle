@@ -128,13 +128,6 @@
   (hash-set! h 'draw default-draw-function)
   h)
 
-;; Adding agents to an agentset should be easy.
-(define/contract (add-to-agentset! λ:as ag)
-  (-> procedure? agent? agent?)
-  (define agents (hash-copy (agentset-agents (λ:as))))
-  (hash-set! agents (agent-id ag) ag)
-  (set-agentset-agents! (λ:as) agents)
-  ag)
 
 ;; Those are static agentsets. Some agentsets are actually more
 ;; dynamic. For example, 'turtles-here' is an agentset, but
@@ -360,10 +353,10 @@
             direction magnitude))
   (set (current-agent)
        xcor
-       (wrap new-x (get world-rows)))
+       (wrap new-x (get global world-rows)))
   (set (current-agent)
        ycor
-       (wrap new-y (get world-cols)))
+       (wrap new-y (get global world-cols)))
   )
 
 (define (right d)
@@ -383,6 +376,7 @@
 ;;(define patches (agentset 'patch  'patches empty (make-hash)))
 ;;(add-agentset patches)
 (create-breed patch patches)
+(create-breed dirty-patch dirty-patches)
 
 ;; If patches are indexed reasonably in the agentset, then it should be
 ;; possible to index into them quickly.
@@ -392,16 +386,16 @@
 ;; to change the number or rows/cols, and as a result, all of this needs to be
 ;; dynamic.
 (define (create-patches)
-  (create patches (* (get world-cols) (get world-rows)))
+  (create patches (* (get global world-cols) (get global world-rows)))
   (give patches dirty? draw pcolor pxcor pycor)
   (ask patches
        (set dirty? false)
        (set draw draw-patch)
-       (set pxcor (quotient (get id) (get world-cols)))
-       (set pycor (remainder  (get id) (get world-rows)))
+       (set pxcor (quotient (get id) (get global world-cols)))
+       (set pycor (remainder  (get id) (get global world-rows)))
        #;(begin
            (printf "pid ~a px ~a py ~a~n"
-                   (get id) (get pxcor) (get pycor))
+                   (get id) (get patch pxcor) (get patch pycor))
            (sleep 1))
        )
   )
