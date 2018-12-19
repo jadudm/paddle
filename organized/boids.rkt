@@ -13,7 +13,7 @@
 (create-breed boid boids)
 
 ;; I want many turtles.
-(create boids 500)
+(create boids 200)
 
 ;; Boids have a vision limit
 (give boids vision)
