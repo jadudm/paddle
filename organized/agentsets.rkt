@@ -144,6 +144,7 @@
   (hash-set! h 'plural plural)
   (hash-set! h 'xcor 0)
   (hash-set! h 'ycor 0)
+  
   (hash-set! h 'direction (random 360))
   (hash-set! h 'color (rgb (+ 64 (random 128))
                            (+ 64 (random 128))
@@ -208,6 +209,8 @@
   ;; (define pycor (quotient  patch-id (get world-rows))))
   (define hash:patches (agentset-agents (hash-ref agentsets 'patches)))
   (cond
+    ;; What if there are no patches in this world?
+    [(zero? (hash-count hash:patches)) (void)]
     [(hash-has-key? hash:patches patch-id)
      (current-patch (hash-ref hash:patches patch-id))]
     [else
@@ -220,6 +223,31 @@
             patch-id)])
   )
 
+(define agent-locations (make-hash))
+
+(define (update-location! ag prev-patch-id current-patch-id)
+  (unless (= prev-patch-id current-patch-id)
+    ;; First, make sure the breed hash exists.
+    (when (not (hash-has-key? agent-locations (agent-breed ag)))
+      (hash-set! agent-locations (agent-breed ag) (make-hash)))
+    (define breed-hash (hash-ref agent-locations (agent-breed ag)))
+
+    ;; Make sure the current/prev hashes exist.
+    (when (not (hash-has-key? breed-hash current-patch-id))
+      (hash-set! breed-hash current-patch-id (make-hash)))
+
+    ;; My current and prev are different.
+    ;; Remove me from the prev, insert me into the current.
+    (define my-id (agent-id ag))
+    (when (hash-has-key? breed-hash prev-patch-id)
+      (hash-remove! (hash-ref breed-hash prev-patch-id) my-id)
+      (hash-set!    (hash-ref breed-hash current-patch-id) my-id)
+      )
+    
+    (hash-set!    (hash-ref breed-hash current-patch-id) my-id true)
+    ))
+  
+
 (define (generate-radius x y r)
   (define points empty)
   (for ([x-range (range (- x r) (+ x r))])
@@ -227,11 +255,39 @@
       (set! points (cons (list x-range y-range) points))))
   points)
 
+(define sniff-bad
+  (case-lambda
+    [(radius)
+     (sniff (hash-ref agentsets (hash-ref (agent-fields (current-agent)) 'plural))
+            radius)]
+    [(as radius)
+     (define points (generate-radius
+                     (get (current-agent) xcor)
+                     (get (current-agent) ycor)
+                     radius))
+     (define patch-ids (map ->patch
+                            (map first points)
+                            (map second points)))
+     (define found (make-hash))
+     (for ([id patch-ids])
+       (define some
+         (hash-ref (hash-ref agent-locations (agentset-breed (as)))
+                   id))
+       (for ([(aid v) some])
+         (hash-set! found aid (hash-ref (agentset-agents (as)) aid))))
+     (λ ()  (agentset (agentset-breed (as))
+                      (agentset-plural (as))
+                      (agentset-base-fields (as))
+                      found))
+     ]))
+     
+
 (define sniff
   (case-lambda
     [(radius)
-     (sniff current-agent radius)]
-    [(current-agent radius)
+     (sniff (hash-ref agentsets (hash-ref (agent-fields (current-agent)) 'plural))
+            radius)]
+    [(as radius)
      (define points (generate-radius
                      (get (current-agent) xcor)
                      (get (current-agent) ycor)
@@ -242,14 +298,15 @@
      (define patch-ids (map ->patch
                             (map first points)
                             (map second points)))
+     
      #;(printf "agent ~a w/ patch-id ~a looking at patches ~a~n"
              (get (current-agent) id)
              (get (current-agent) patch-id)
              patch-ids)
      
      (define found (make-hash))
-     (define as-plural (hash-ref (agent-fields (current-agent)) 'plural))
-     (define as (λ () (hash-ref agentsets as-plural)))
+     ;; (define as-plural (hash-ref (agent-fields (current-agent)) 'plural))
+     ;; (define as (λ () (hash-ref agentsets as-plural)))
      (for ([(id agent) (agentset-agents (as))])
        (define nearby-agent-pid (hash-ref (agent-fields agent) 'patch-id))
        (when (member nearby-agent-pid  patch-ids)
@@ -307,6 +364,8 @@
         (hash-set! default-fields f 0)))
     (define new-agent (agent offset-id breed default-fields))
     (add-to-agentset! λ:as new-agent)
+    ;; NEED TO DO THIS
+    ;; (update-location! new-agent 0 0)
     )
   λ:as)
 
@@ -355,6 +414,9 @@
 
 (define-syntax (any? stx)
   (syntax-case stx ()
+    [(_ as)
+     #`(let ()
+         (> (hash-count (agentset-agents (as))) 0))]
     [(_ as bool-exp)
      #`(let ()
          (define counter 0)
@@ -365,7 +427,8 @@
          ;; If the bool-exp was ever true, I incremented
          ;; the counter. So, I should return true.
          (> counter 0))
-     ]))
+     ]
+    ))
 
 
 ;; What if I want to know if everyone has a property?
@@ -425,9 +488,16 @@
   (set (current-agent)
        ycor
        (wrap new-y (get global world-cols)))
+
+  (set (current-agent)
+       prev-patch-id
+       (get patch-id))
+  
   (set (current-agent)
        patch-id
        (->patch (get xcor) (get ycor)))
+
+  ;;(update-location! (current-agent) (get prev-patch-id) (get patch-id))
   )
 
 (define (right d)
@@ -481,11 +551,6 @@
     (define g (send (get pcolor) green))
     (define b (send (get pcolor) blue))
 
-    #;(when (zero? (get (current-patch) id))
-        (set! r 255)
-        (set! g 255)
-        (set! b 255)
-        )
     (glColor3ub r g b)
     
     (glVertex3f (+ 0 (* side row)) (+ 0 (* col side)) -0.1)
