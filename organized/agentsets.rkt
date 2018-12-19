@@ -223,29 +223,6 @@
             patch-id)])
   )
 
-(define agent-locations (make-hash))
-
-(define (update-location! ag prev-patch-id current-patch-id)
-  (unless (= prev-patch-id current-patch-id)
-    ;; First, make sure the breed hash exists.
-    (when (not (hash-has-key? agent-locations (agent-breed ag)))
-      (hash-set! agent-locations (agent-breed ag) (make-hash)))
-    (define breed-hash (hash-ref agent-locations (agent-breed ag)))
-
-    ;; Make sure the current/prev hashes exist.
-    (when (not (hash-has-key? breed-hash current-patch-id))
-      (hash-set! breed-hash current-patch-id (make-hash)))
-
-    ;; My current and prev are different.
-    ;; Remove me from the prev, insert me into the current.
-    (define my-id (agent-id ag))
-    (when (hash-has-key? breed-hash prev-patch-id)
-      (hash-remove! (hash-ref breed-hash prev-patch-id) my-id)
-      (hash-set!    (hash-ref breed-hash current-patch-id) my-id)
-      )
-    
-    (hash-set!    (hash-ref breed-hash current-patch-id) my-id true)
-    ))
   
 
 (define (generate-radius x y r)
@@ -255,31 +232,6 @@
       (set! points (cons (list x-range y-range) points))))
   points)
 
-(define sniff-bad
-  (case-lambda
-    [(radius)
-     (sniff (hash-ref agentsets (hash-ref (agent-fields (current-agent)) 'plural))
-            radius)]
-    [(as radius)
-     (define points (generate-radius
-                     (get (current-agent) xcor)
-                     (get (current-agent) ycor)
-                     radius))
-     (define patch-ids (map ->patch
-                            (map first points)
-                            (map second points)))
-     (define found (make-hash))
-     (for ([id patch-ids])
-       (define some
-         (hash-ref (hash-ref agent-locations (agentset-breed (as)))
-                   id))
-       (for ([(aid v) some])
-         (hash-set! found aid (hash-ref (agentset-agents (as)) aid))))
-     (λ ()  (agentset (agentset-breed (as))
-                      (agentset-plural (as))
-                      (agentset-base-fields (as))
-                      found))
-     ]))
      
 
 (define sniff
