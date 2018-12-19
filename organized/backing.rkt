@@ -9,14 +9,20 @@
 ;; linear combination of [x,y] that could serve as a
 ;; vector reference.
 
-(define backing (make-vector 1 false))
+(define prev-world (make-vector 1 false))
+(define curr-world (make-vector 1 false))
+(define world-leng 0)
 
 ;; We need to be able to set this when
 ;; the world is created.
 (define (setup-backing-world! x y)
-  (set! backing (make-vector (* x y) 0))
-  (for ([ndx (range (vector-length backing))])
-    (vector-set! backing ndx (make-hash))))
+  (set! prev-world (make-vector (* x y) 0))
+  (set! curr-world (make-vector (* x y) 0))
+  (set! world-leng (* x y))
+  
+  (for ([ndx (range world-leng)])
+    (vector-set! prev-world ndx (make-hash))
+    (vector-set! curr-world ndx (make-hash))))
 
 ;; An agent is either going to be
 ;; 1. set at a location, or
@@ -29,18 +35,17 @@
   (define id (agent-id ag))
   
   ;; Remove the old prev.
-  (when (hash-has-key? (vector-ref backing prev) id)
-    (hash-remove! (vector-ref backing prev) id))
+  (when (hash-has-key? (vector-ref prev-world prev) id)
+    (hash-remove! (vector-ref prev-world prev) id))
   
   ;; Make new prev the old current.
-  (hash-set! (vector-ref backing curr)
-             id ag)
+  (hash-set! (vector-ref curr-world curr) id ag)
   )
 
 ;; Return everyone at the location of the given agent.
 (define (get-backing-from-agent ag)
-  (vector-ref backing (hash-ref (agent-fields ag) 'patch-id)))
+  (vector-ref curr-world (hash-ref (agent-fields ag) 'patch-id)))
 
 (define (get-backing-from-patch-id pid)
-  (vector-ref backing pid))
+  (vector-ref curr-world pid))
   
