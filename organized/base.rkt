@@ -20,7 +20,26 @@
 (struct slider (agentset var low high)
   #:transparent)
 
+(define next-agent-id 0)
+(define (set-next-agent-id! v)
+  (set! next-agent-id v))
+(define (get-next-agent-id)
+  next-agent-id)
 
+;; Everything is in a coordinate system with OpenGL where the number of
+;; columns and rows is scaled to the height and width of the viewport.
+;; Therefore, [79.9, 79.9] will map to [79,79], which is less than 80x80.
+;; Can we ever get a value outside the range? I don't know. This has to do with
+;; whether we map by wrapping or not.
+(define (->patch x y)
+  (define edge-y ((get global edge-y) (exact-floor y)))
+  (define edge-x ((get global edge-x) (exact-floor x)))
+  (define world-rows (get global world-rows))
+  
+  ;;(printf "\te-y ~a e-x ~a w-r ~a~n" edge-y edge-x world-rows)
+  
+  (exact-floor (+ (* edge-y world-rows) edge-x))
+  )
 
 ;; Adding agents to an agentset should be easy.
 (define/contract (add-to-agentset! λ:as ag)

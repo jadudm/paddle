@@ -3,7 +3,9 @@
          racket/contract
          (only-in racket/draw color%)
          sgl/gl)
-(require "base.rkt")
+
+(require "base.rkt"
+         "backing.rkt")
 
 (provide (all-defined-out))
 
@@ -181,22 +183,6 @@
                   h)))
 
 
-;; Everything is in a coordinate system with OpenGL where the number of
-;; columns and rows is scaled to the height and width of the viewport.
-;; Therefore, [79.9, 79.9] will map to [79,79], which is less than 80x80.
-;; Can we ever get a value outside the range? I don't know. This has to do with
-;; whether we map by wrapping or not.
-(define (->patch x y)
-  (define edge-y ((get global edge-y) (exact-floor y)))
-  (define edge-x ((get global edge-x) (exact-floor x)))
-  (define world-rows (get global world-rows))
-  
-  ;;(printf "\te-y ~a e-x ~a w-r ~a~n" edge-y edge-x world-rows)
-  
-  (exact-floor (+ (* edge-y world-rows) edge-x))
-  )
-
-
 (define (set-current-patch a)
   ;; Floor the agent's position, multiply, and use
   ;; that as a pretend patch-id to work backwards.
@@ -232,9 +218,31 @@
       (set! points (cons (list x-range y-range) points))))
   points)
 
-     
-
 (define sniff
+  (case-lambda
+    [(radius)
+     (sniff (hash-ref agentsets
+                 (hash-ref (agent-fields (current-agent)) 'plural)) radius)]
+    [(as radius)
+     (define points (generate-radius
+                     (get (current-agent) xcor)
+                     (get (current-agent) ycor)
+                     radius))
+     (define patch-ids (map ->patch
+                            (map first points)
+                            (map second points)))
+     (define found (make-hash))
+     (for ([id patch-ids])
+       (define h (get-backing-from-patch-id id))
+       (for ([(id agent) h])
+         (hash-set! found id agent)))
+     (λ ()  (agentset (agentset-breed (as))
+                      (agentset-plural (as))
+                      (agentset-base-fields (as))
+                      found))
+     ]))
+
+(define sniff-works
   (case-lambda
     [(radius)
      (sniff (hash-ref agentsets (hash-ref (agent-fields (current-agent)) 'plural))
@@ -303,7 +311,10 @@
   (define h (agentset-agents (λ:as)))
   (define breed (agentset-breed (λ:as)))
   (define plural (agentset-plural (λ:as)))
-  (define start-id (hash-count h))
+  ;; This should guarantee globally unique agent ids.
+  (define start-id (get-next-agent-id))
+  (set-next-agent-id! (+ start-id num))
+  
   (for ([id (range num)])
     (define offset-id (+ id start-id))
     ;; FIXME
@@ -449,7 +460,9 @@
        patch-id
        (->patch (get xcor) (get ycor)))
 
-  ;;(update-location! (current-agent) (get prev-patch-id) (get patch-id))
+  ;; For tracking agent locations.
+  (update-backing! (current-agent))
+
   )
 
 (define (right d)

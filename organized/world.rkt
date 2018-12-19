@@ -3,7 +3,8 @@
          sgl/gl)
 
 (require "base.rkt"
-         "agentsets.rkt")
+         "backing.rkt"
+         )
 
 (provide (all-defined-out))
 
@@ -17,7 +18,9 @@
   (set global world-cols cols)
   (set global world-rows rows)
   (set global frame-width width)
-  (set global frame-height height))
+  (set global frame-height height)
+  ;; For tracking agent locations.
+  (setup-backing-world! rows cols))
 
 (define (draw-agents)
   ;;(printf "(draw-agents)~n")

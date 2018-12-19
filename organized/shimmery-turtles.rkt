@@ -4,10 +4,11 @@
          "agentsets.rkt"
          "world.rkt"
          "interface.rkt"
+         "backing.rkt"
          )
 
 ;; I must create the world first.
-(make-world 30 30 600 600)
+(make-world 5 5 300 300)
 
 ;; The world does not always need patches.
 ;; This world does.
@@ -17,10 +18,10 @@
 (create-breed turtle turtles)
 
 ;; I want many turtles.
-(create turtles 50)
+(create turtles 5)
 
 ;; I could slow things down.
-(tick-pause (/ 1 60))
+(tick-pause (/ 1 1))
 
 ;; I want to set up my turtles.
 (define (setup)

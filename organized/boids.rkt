@@ -13,7 +13,7 @@
 (create-breed boid boids)
 
 ;; I want many turtles.
-(create boids 200)
+(create boids 500)
 
 ;; Boids have a vision limit
 (give boids vision)
@@ -35,7 +35,7 @@
 
    ;; This is fun... let's vary how far boids
    ;; can see! Some flock better than others...
-   (set vision 4)
+   (set vision 8)
    
    (set color (rgb 255 255 0))
    )
