@@ -1,6 +1,7 @@
 #lang racket
 
-(require "base.rkt")
+(require "types.rkt"
+         "base.rkt")
 (provide (all-defined-out))
 
 ;; I want a fast way to know everyone around an agent.
@@ -39,10 +40,13 @@
     (hash-remove! (vector-ref prev-world prev) id))
   
   ;; Make new prev the old current.
-  (hash-set! (vector-ref curr-world curr) id ag)
+  ;; FIXME I should store booleans here, so it is just a
+  ;; set of IDs, not a set of agents.
+  (hash-set! (vector-ref curr-world curr) id true)
   )
 
 ;; Return everyone at the location of the given agent.
+;; FIXME These need to be renamed to something like "get-agent-ids-at..."
 (define (get-backing-from-agent ag)
   (vector-ref curr-world (hash-ref (agent-fields ag) 'patch-id)))
 

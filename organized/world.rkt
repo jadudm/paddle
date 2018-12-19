@@ -4,7 +4,11 @@
 
 (require "base.rkt"
          "backing.rkt"
+         "patches.rkt"
+         "types.rkt"
          )
+
+(define flag-ch (make-channel))
 
 (provide (all-defined-out))
 
@@ -20,28 +24,42 @@
   (set global frame-width width)
   (set global frame-height height)
   ;; For tracking agent locations.
-  (setup-backing-world! rows cols))
+  (setup-backing-world! cols rows)
+  (create-patches cols rows)
+  (printf "Done making world.~n")
+  )
 
+(define (draw-patches)
+  (define side 1)
+  
+  ;; I need to go through and draw the patches that are dirty.
+  ;; These are in a vector.
+  (for ([pid (get-dirty-patch-ids)])
+    (current-patch pid)
+    (define coord (get-patch-coordinate pid))
+    (define col (coordinate-x coord))
+    (define row (coordinate-y coord))
+    (begin
+      (glBegin GL_QUADS)
+      (define r (rgb-color-r (get patch pcolor)))
+      (define g (rgb-color-g (get patch pcolor)))
+      (define b (rgb-color-b (get patch pcolor)))
+      ;;(printf "draw px ~a py ~a~n" col row)
+      ;;(sleep 0)
+        
+      (glColor3ub r g b)
+      ;; (glTranslatef col row 0)
+      (glVertex3f (+ 0 (* side row)) (+ 0 (* col side)) -0.1)
+      (glVertex3f (+ side (* side row)) (+ 0 (* col side)) -0.1)
+      (glVertex3f (+ side (* side row)) (+ side (* col side)) -0.1)
+      (glVertex3f (+ 0 (* side row)) (+ side (* col side)) -0.1)
+      ;; (glTranslatef (- col) (- row) 0)
+      (glEnd)
+      )
+    ))
 (define (draw-agents)
-  ;;(printf "(draw-agents)~n")
+  
   (for ([(plural as) agentsets])
-    
-    ;; Draw the patches first.
-    (when (equal? plural 'dirty-patches)
-      ;; (printf "Drawing patches.~n")
-      (for ([(id patch) (agentset-agents as)])
-        (parameterize ([current-agent patch]
-                       [current-patch patch])
-          ;; FIXME The alternative is to go through all patches
-          ;; and decide if they're dirty. Instead, I've instrumented
-          ;; (set patch ...) so that it tracks dirtyness, and moves dirty patches
-          ;; into the dirty-patch breed.
-          #;(printf "dirty id ~a pid ~a px ~a py ~a~n"
-                    (get id) (get patch-id)
-                    (get pxcor) (get pycor))
-          ((get draw))
-          )))
-
     ;;(glClear GL_DEPTH_BUFFER_BIT)
     ;; Draw the agents second
     (when (not (member plural '(patches dirty-patches)))
@@ -71,16 +89,9 @@
   (glMatrixMode GL_MODELVIEW)
   (glLoadIdentity))
 
-(define (draw-grid)
-  (define side 1)
-  (for ([row (get global world-rows)])
-    (for ([col (get global world-cols)])
-       'pass
-      )))
-
-
 (define (draw-opengl)
   (setup-gl-draw)
+  (draw-patches)
   (draw-agents)
   ;; (draw-grid)
   )
@@ -116,14 +127,10 @@
   (set! threads-to-kill (cons t threads-to-kill)))
 
 (define (run-world setup go)
-  (printf "Running setup.~n")
-  (setup)
-  (printf "Done with setup.~n")
-  
+
   (printf "Building frame.~n")
   (define-values (screen-x screen-y)
     (get-display-size))
-  
   (define win (new paddle-frame%
                    [label "paddle gl"]
                    [min-width  (get global frame-width)]
@@ -131,20 +138,23 @@
                    [x (- screen-x (get global frame-width) 50)]
                    [y 50]
                    ))
-
   (printf "Building canvas.~n")
   (define gl  (new paddle-canvas%
                    [parent win]))
- 
-  (send win show #t)
-  
-  (collect-garbage 'major)
+
+  (thread (λ ()
+            (printf "Running setup.~n")
+            (setup)
+            (printf "Done with setup.~n")
+            (collect-garbage 'major)
+            (channel-put flag-ch true)))
   
   (define draw-thread
-    (λ ()
-      (thread (λ ()
+    (thread (λ ()
               ;; (sleep 1)
-
+              (channel-get flag-ch)
+              
+              (send win show #t)
               (let loop ()
                 ;; Update turtles every third tick, if the interface is dirty.
                 (when interface-dirty?
@@ -165,11 +175,11 @@
 
                 ;; Rinse and repeat
                 (loop)
-                )))))
+                ))))
 
   ;; This actually spawns the draw thread...
-  (sleep 0.5)
-  (add-thread-to-kill! (draw-thread))
+  
+  (add-thread-to-kill! draw-thread)
   (stop (λ ()
           (map kill-thread threads-to-kill)
           )))

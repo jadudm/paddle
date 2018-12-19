@@ -1,5 +1,6 @@
 #lang racket/gui
-(require "base.rkt"
+(require "types.rkt"
+         "base.rkt"
          "agentsets.rkt"
          "world.rkt")
 (provide (all-defined-out))

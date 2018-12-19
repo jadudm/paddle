@@ -4,24 +4,25 @@
          "agentsets.rkt"
          "world.rkt"
          "interface.rkt"
-         "backing.rkt"
+         "patches.rkt"
+         "types.rkt"
          )
 
 ;; I must create the world first.
-(make-world 5 5 300 300)
+(make-world 100 100 600 600)
 
 ;; The world does not always need patches.
 ;; This world does.
-(create-patches)
+;; (create-patches)
 
 ;; My creatures are called turtles.
 (create-breed turtle turtles)
 
 ;; I want many turtles.
-(create turtles 5)
+(create turtles 300)
 
 ;; I could slow things down.
-(tick-pause (/ 1 1))
+;;(tick-pause (/ 1 60))
 
 ;; I want to set up my turtles.
 (define (setup)
@@ -36,7 +37,7 @@
   (ask turtles
    (set xcor (random (get global world-cols)))
    (set ycor (random (get global world-rows)))
-   (set color (rgb 255 0 128))
+   (set color (rgb 255 0 0))
    )
 
   ;; Only a special few of my turtles are yellow.
@@ -53,13 +54,13 @@
   ;; First, I ask all my turtles to wiggle and then move.
   (ask turtles
    (wiggle)
-   (move 0.25)
+   (move 1)
    )
   
   ;; Then, I ask all the not-special turtles to clear the patch
   ;; they are on.
   (ask (with turtles (not (member (get id) (range 5))))
-       (set patch dirty? false))
+       'pass)
 
   ;; Finally,  I ask the special turtles to use the slider values
   ;; to set their patches to a pretty color.

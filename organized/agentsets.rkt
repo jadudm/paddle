@@ -1,11 +1,13 @@
 #lang racket
 (require syntax/parse
          racket/contract
-         (only-in racket/draw color%)
          sgl/gl)
 
 (require "base.rkt"
-         "backing.rkt")
+         "backing.rkt"
+         "patches.rkt"
+         "types.rkt"
+         )
 
 (provide (all-defined-out))
 
@@ -95,11 +97,6 @@
                (hash-set! (agent-fields agent) k 0)))))
      ]))
 
-;; FIXME: There are 14 core colors.
-;; It will take some effort to build the NetLogo color table.
-(define/contract (rgb r g b)
-  (-> byte? byte? byte? (is-a?/c color%))
-  (make-object color% r g b))
 
 (define (default-draw-function)
   (let ()
@@ -116,9 +113,9 @@
     (glBegin GL_TRIANGLES)
     ;; These return bytes.
     (define color-obj (get color))
-    (glColor3ub (send color-obj red)
-                (send color-obj green)
-                (send color-obj blue))
+    (glColor3ub (rgb-color-r color-obj)
+                (rgb-color-g color-obj)
+                (rgb-color-b color-obj))
     
     ;; FIXME This does not center the agent in a square.          
     (glVertex3f turtle-x (+ (/ 1 2) turtle-y) 0.1)
@@ -247,78 +244,21 @@
        (define found (make-hash))
        (for ([id patch-ids])
          (define h (get-backing-from-patch-id id))
-         (for ([(id agent) h])
-           (hash-set! found id agent)))
+         ;; These are now booleans being returned...
+         (for ([(id _boolean_not_agent_) h])
+           (hash-set! found id true)))
        (define result (λ ()  (agentset (agentset-breed (as))
                                        (agentset-plural (as))
                                        (agentset-base-fields (as))
-                                       found)))
+                                       (for/hash ([(id _bool_) found])
+                                         (values id
+                                                 (hash-ref (agentset-agents (as)) id)))
+                                       )))
+                                          
        (hash-set! memo key result)
        result])
        ])))
 (define sniff sniff-memo)
-  
-(define sniff-works-faster
-  (case-lambda
-    [(radius)
-     (sniff (hash-ref agentsets
-                      (hash-ref (agent-fields (current-agent)) 'plural)) radius)]
-    [(as radius)
-     (define points (generate-radius
-                     (get (current-agent) xcor)
-                     (get (current-agent) ycor)
-                     radius))
-     (define patch-ids (map ->patch
-                            (map first points)
-                            (map second points)))
-     (define found (make-hash))
-     (for ([id patch-ids])
-       (define h (get-backing-from-patch-id id))
-       (for ([(id agent) h])
-         (hash-set! found id agent)))
-     (λ ()  (agentset (agentset-breed (as))
-                      (agentset-plural (as))
-                      (agentset-base-fields (as))
-                      found))
-     ]))
-
-(define sniff-works
-  (case-lambda
-    [(radius)
-     (sniff (hash-ref agentsets (hash-ref (agent-fields (current-agent)) 'plural))
-            radius)]
-    [(as radius)
-     (define points (generate-radius
-                     (get (current-agent) xcor)
-                     (get (current-agent) ycor)
-                     radius))
-     
-     ;; (printf "~a points: ~a~n" (length points) points)
-     
-     (define patch-ids (map ->patch
-                            (map first points)
-                            (map second points)))
-     
-     #;(printf "agent ~a w/ patch-id ~a looking at patches ~a~n"
-               (get (current-agent) id)
-               (get (current-agent) patch-id)
-               patch-ids)
-     
-     (define found (make-hash))
-     ;; (define as-plural (hash-ref (agent-fields (current-agent)) 'plural))
-     ;; (define as (λ () (hash-ref agentsets as-plural)))
-     (for ([(id agent) (agentset-agents (as))])
-       (define nearby-agent-pid (hash-ref (agent-fields agent) 'patch-id))
-       (when (member nearby-agent-pid  patch-ids)
-         ;;(printf "patch-id ~a in ~a~n" nearby-agent-pid  patch-ids)
-         (hash-set! found id agent)))
-     ;; (struct agentset (breed plural base-fields agents)
-     (λ ()  (agentset (agentset-breed (as))
-                      (agentset-plural (as))
-                      (agentset-base-fields (as))
-                      found))
-     ]))
-           
 
 ;; The 'ask' macro is easier now. It isn't 'ask-turtles' and 'ask-fishes,' but instead
 ;; just 'ask' followed by an agentset.
@@ -327,8 +267,12 @@
     [(_ as bodies ...)
      #`(begin
          (for ([(id agent) (agentset-agents (as))])
+           ;; (printf "ask agent ~a ~n" agent)
            (current-agent agent)
-           (set-current-patch agent)
+           (current-patch (->patch (hash-ref (agent-fields agent) 'xcor)
+                                   (hash-ref (agent-fields agent) 'ycor)))
+           ;; FIXME I don't think this is needed.
+           ;; (set-current-patch agent)
            bodies ...)
          )]))
 
@@ -521,47 +465,9 @@
 
 ;;(define patches (agentset 'patch  'patches empty (make-hash)))
 ;;(add-agentset patches)
-(create-breed patch patches)
-(create-breed dirty-patch dirty-patches)
+;; (create-breed patch patches)
+;; (create-breed dirty-patch dirty-patches)
 
-;; If patches are indexed reasonably in the agentset, then it should be
-;; possible to index into them quickly.
-;;
-;; If they are sequential, I can mathematically map to the correct patch.
-;; This will all need to be done at run-time. The user needs to be able
-;; to change the number or rows/cols, and as a result, all of this needs to be
-;; dynamic.
-(define (create-patches)
-  (create patches (* (get global world-cols) (get global world-rows)))
-  (give patches dirty? draw pcolor pxcor pycor)
-  (ask patches
-       (set dirty? false)
-       (set draw draw-patch)
-       (set pxcor (quotient (get id) (get global world-cols)))
-       (set pycor (remainder  (get id) (get global world-rows)))
-       )
-  )
 
-(define (draw-patch)
-  (define side 1)
-  (define col (get pxcor))
-  (define row (get pycor))
-  (let ()
-    (glBegin GL_QUADS)
-    (define r (send (get pcolor) red))
-    (define g (send (get pcolor) green))
-    (define b (send (get pcolor) blue))
-    ;;(printf "draw px ~a py ~a~n" col row)
-    ;;(sleep 0)
-    
-    (glColor3ub r g b)
-    ;; (glTranslatef col row 0)
-    (glVertex3f (+ 0 (* side row)) (+ 0 (* col side)) -0.1)
-    (glVertex3f (+ side (* side row)) (+ 0 (* col side)) -0.1)
-    (glVertex3f (+ side (* side row)) (+ side (* col side)) -0.1)
-    (glVertex3f (+ 0 (* side row)) (+ side (* col side)) -0.1)
-    ;; (glTranslatef (- col) (- row) 0)
-    (glEnd)
-    ))
 
 
