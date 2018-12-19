@@ -539,10 +539,6 @@
        (set draw draw-patch)
        (set pxcor (quotient (get id) (get global world-cols)))
        (set pycor (remainder  (get id) (get global world-rows)))
-       #;(begin
-           (printf "pid ~a px ~a py ~a~n"
-                   (get id) (get patch pxcor) (get patch pycor))
-           (sleep 1))
        )
   )
 
@@ -555,13 +551,16 @@
     (define r (send (get pcolor) red))
     (define g (send (get pcolor) green))
     (define b (send (get pcolor) blue))
-
-    (glColor3ub r g b)
+    ;;(printf "draw px ~a py ~a~n" col row)
+    ;;(sleep 0)
     
+    (glColor3ub r g b)
+    ;; (glTranslatef col row 0)
     (glVertex3f (+ 0 (* side row)) (+ 0 (* col side)) -0.1)
     (glVertex3f (+ side (* side row)) (+ 0 (* col side)) -0.1)
     (glVertex3f (+ side (* side row)) (+ side (* col side)) -0.1)
     (glVertex3f (+ 0 (* side row)) (+ side (* col side)) -0.1)
+    ;; (glTranslatef (- col) (- row) 0)
     (glEnd)
     ))
 

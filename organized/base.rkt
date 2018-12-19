@@ -81,7 +81,7 @@
      #`(hash-ref globals (quote k))]
 
     [(_get (~literal patch) k)
-     #`(cond
+     #`(cond 
          [(hash-ref (agent-fields (current-patch)) 'dirty?)
           (define patch (hash-ref
                          (agentset-agents (hash-ref agentsets 'dirty-patches))
@@ -115,17 +115,38 @@
 
     [(_set (~literal patch) k:id expr:expr)
      #`(begin
-         (hash-set! (agent-fields (current-patch)) 'dirty? true)
-         (hash-set! (agent-fields (current-patch)) (quote k) expr)
-         (cond
-           [(get (current-patch) dirty?)
-            (define new-agent (agent (agent-id (current-patch))
-                                     'patch
-                                     (agent-fields (current-patch))))
-            (add-to-agentset! (λ () (hash-ref agentsets 'dirty-patches)) new-agent)]
-           [else
-            (remove-from-agentset! (λ () (hash-ref agentsets 'dirty-patches))
-                                   (agent-id (current-patch)))])
+         ;; My patch ids need to be used instead of agent ids.
+         ;; (current-patch) is not being set.
+         ;; This needs to be watched... this fixed a problem with
+         ;; (ask patches ...)
+         ;; which treats patches as agents. 
+         (parameterize ([current-patch (current-agent)])
+           ;; Set the patch as dirty.
+           (hash-set! (agent-fields (current-patch)) 'dirty? true)
+           ;; Unless part of what we do undirties it.
+           (hash-set! (agent-fields (current-patch)) (quote k) expr)
+           ;(printf "set patch id ~a dirty? ~a~n" (agent-id (current-patch)) expr)
+           
+           (cond
+             [(get (current-patch) dirty?)
+              ;; If the patch is dirty, create a new patch, and put
+              ;; it in the dirty-patch set.
+              (define new-agent (agent (agent-id (current-patch))
+                                       'patch
+                                       (agent-fields (current-patch))))
+              (add-to-agentset! (λ () (hash-ref agentsets 'dirty-patches)) new-agent)]
+             [else
+              ;; If the patch is clean, remove it from the dirty patches.
+              ;; First, set it in the main set, so we don't lose data.
+              (hash-set! (agentset-agents (hash-ref agentsets 'patches))
+                         (agent-id (current-patch))
+                         (hash-ref (hash-ref agentsets 'dirty-patches)
+                                   (agent-id (current-patch))))
+              ;; Then, remove it from the dirty patches.
+              (remove-from-agentset! (λ () (hash-ref agentsets 'dirty-patches))
+                                     (agent-id (current-patch)))
+            
+              ]))
          )]
     [(_set k expr)
      #`(hash-set! (agent-fields (current-agent)) (quote k) expr)]
@@ -158,17 +179,17 @@
                        [(>= val max) (modulo (exact-floor val) max)]
                        [(< val 0) (modulo (+ max val) max)]
                        [else val])))
-     (set global edge-y (λ (val)
-                          (define max (get global world-rows))
-                          (cond
-                            [(>= val max) (modulo (exact-floor val) max)]
-                            [(< val 0) (modulo (+ max val) max)]
-                            [else val])))
+(set global edge-y (λ (val)
+                     (define max (get global world-rows))
+                     (cond
+                       [(>= val max) (modulo (exact-floor val) max)]
+                       [(< val 0) (modulo (+ max val) max)]
+                       [else val])))
 
-     (define (combine l1 l2)
-       (cond
-         [(empty? l1) l2]
-         [(member (first l1) l2)
-          (combine (rest l1) l2)]
-         [else
-          (cons (first l1) (combine (rest l1) l2))]))
+(define (combine l1 l2)
+  (cond
+    [(empty? l1) l2]
+    [(member (first l1) l2)
+     (combine (rest l1) l2)]
+    [else
+     (cons (first l1) (combine (rest l1) l2))]))

@@ -25,7 +25,6 @@
 (define (draw-agents)
   ;;(printf "(draw-agents)~n")
   (for ([(plural as) agentsets])
-
     
     ;; Draw the patches first.
     (when (equal? plural 'dirty-patches)
@@ -36,7 +35,10 @@
           ;; FIXME The alternative is to go through all patches
           ;; and decide if they're dirty. Instead, I've instrumented
           ;; (set patch ...) so that it tracks dirtyness, and moves dirty patches
-          ;; into the dirty-patch breed. 
+          ;; into the dirty-patch breed.
+          #;(printf "dirty id ~a pid ~a px ~a py ~a~n"
+                    (get id) (get patch-id)
+                    (get pxcor) (get pycor))
           ((get draw))
           )))
 
@@ -114,7 +116,9 @@
   (set! threads-to-kill (cons t threads-to-kill)))
 
 (define (run-world setup go)
+  (printf "Running setup.~n")
   (setup)
+  (printf "Done with setup.~n")
   
   (printf "Building frame.~n")
   (define-values (screen-x screen-y)
@@ -134,10 +138,12 @@
  
   (send win show #t)
   
+  (collect-garbage 'major)
+  
   (define draw-thread
-    (thread (λ ()
-              (collect-garbage 'major)
-              (sleep 1)
+    (λ ()
+      (thread (λ ()
+              ;; (sleep 1)
 
               (let loop ()
                 ;; Update turtles every third tick, if the interface is dirty.
@@ -159,9 +165,11 @@
 
                 ;; Rinse and repeat
                 (loop)
-                ))))
+                )))))
 
-  (add-thread-to-kill! draw-thread)
+  ;; This actually spawns the draw thread...
+  (sleep 0.5)
+  (add-thread-to-kill! (draw-thread))
   (stop (λ ()
           (map kill-thread threads-to-kill)
           )))
