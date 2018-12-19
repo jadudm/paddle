@@ -9,7 +9,7 @@
          )
 
 ;; I must create the world first.
-(make-world 100 100 600 600)
+(make-world 200 200 600 600)
 
 ;; The world does not always need patches.
 ;; This world does.
@@ -19,7 +19,7 @@
 (create-breed turtle turtles)
 
 ;; I want many turtles.
-(create turtles 300)
+(create turtles 10)
 
 ;; I could slow things down.
 ;;(tick-pause (/ 1 60))
@@ -59,8 +59,8 @@
   
   ;; Then, I ask all the not-special turtles to clear the patch
   ;; they are on.
-  (ask (with turtles (not (member (get id) (range 5))))
-       'pass)
+  (ask (with turtles (not (zero? (get id))))
+       (clear-patch))
 
   ;; Finally,  I ask the special turtles to use the slider values
   ;; to set their patches to a pretty color.
@@ -71,7 +71,7 @@
                               ))
        
        (ask (other (sniff turtles 2))
-            ;;(printf "found ~a~n" (get (current-agent) id))
+            (printf "found ~a~n" (get (current-agent) id))
             (shimmer (current-agent))
             ))
   )

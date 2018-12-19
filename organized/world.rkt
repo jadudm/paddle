@@ -31,7 +31,7 @@
 
 (define (draw-patches)
   (define side 1)
-  
+  ;;(printf "Trying to draw patches.~n")
   ;; I need to go through and draw the patches that are dirty.
   ;; These are in a vector.
   (for ([pid (get-dirty-patch-ids)])

@@ -10,19 +10,19 @@
 ;; linear combination of [x,y] that could serve as a
 ;; vector reference.
 
-(define prev-world (make-vector 1 false))
+;(define prev-world (make-vector 1 false))
 (define curr-world (make-vector 1 false))
 (define world-leng 0)
 
 ;; We need to be able to set this when
 ;; the world is created.
 (define (setup-backing-world! x y)
-  (set! prev-world (make-vector (* x y) 0))
+  ;(set! prev-world (make-vector (* x y) 0))
   (set! curr-world (make-vector (* x y) 0))
   (set! world-leng (* x y))
   
   (for ([ndx (range world-leng)])
-    (vector-set! prev-world ndx (make-hash))
+    ;(vector-set! prev-world ndx (make-hash))
     (vector-set! curr-world ndx (make-hash))))
 
 ;; An agent is either going to be
@@ -36,8 +36,12 @@
   (define id (agent-id ag))
   
   ;; Remove the old prev.
-  (when (hash-has-key? (vector-ref prev-world prev) id)
-    (hash-remove! (vector-ref prev-world prev) id))
+  (when (hash-has-key? (vector-ref curr-world prev) id)
+    #;(printf "removing agent from x ~a y ~a ppid ~a~n"
+            (hash-ref (agent-fields ag) 'xcor)
+            (hash-ref (agent-fields ag) 'ycor)
+            (hash-ref (agent-fields ag) 'prev-patch-id))
+    (hash-remove! (vector-ref curr-world prev) id))
   
   ;; Make new prev the old current.
   ;; FIXME I should store booleans here, so it is just a

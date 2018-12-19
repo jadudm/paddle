@@ -150,13 +150,20 @@
 ;; This needs to be memoized for performance.
 ;; Actually, it is probably not performance critical.
 (define ->patch
-  (λ (x y)
-    (define edge-y ((get global edge-y) (exact-floor y)))
-    (define edge-x ((get global edge-x) (exact-floor x)))
-    (define world-rows (get global world-rows))
-    
-    (exact-floor (+ (* edge-y world-rows) edge-x))
+  (case-lambda
+    [(x y)
+     (define edge-y ((get global edge-y) (exact-floor y)))
+     (define edge-x ((get global edge-x) (exact-floor x)))
+     (define world-rows (get global world-rows))
+     (exact-floor (+ (* edge-y world-rows) edge-x))]
+    [(agent)
+     (->patch (hash-ref (agent-fields agent) 'xcor)
+              (hash-ref (agent-fields agent) 'ycor))]
     ))
+
+
+(define (clear-patch)
+  (clean-patch! (->patch (current-agent))))
 
 
 ;; values

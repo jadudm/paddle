@@ -230,23 +230,32 @@
        (define key (hash3 (get (current-agent) xcor)
                           (get (current-agent) ycor)
                           radius))
+
+       (define patch-ids 0)
+       
        (cond
          [(hash-has-key? memo key)
-          (hash-ref memo key)]
+          (set! patch-ids (hash-ref memo key))]
          [else
-       (define points (generate-radius
-                       (get (current-agent) xcor)
-                       (get (current-agent) ycor)
-                       radius))
-       (define patch-ids (map ->patch
-                              (map first points)
-                              (map second points)))
+          (define points (generate-radius
+                          (get (current-agent) xcor)
+                          (get (current-agent) ycor)
+                          radius))
+          (set! patch-ids (map ->patch
+                                 (map first points)
+                                 (map second points)))
+          (hash-set! memo key patch-ids)])
+          
        (define found (make-hash))
-       (for ([id patch-ids])
-         (define h (get-backing-from-patch-id id))
-         ;; These are now booleans being returned...
-         (for ([(id _boolean_not_agent_) h])
-           (hash-set! found id true)))
+       (for ([pid patch-ids])
+         ;; (printf "checking patch ~a~n" pid)
+         
+         (define h (get-backing-from-patch-id pid))
+         
+         (for ([(found-id _boolean_not_agent_) h])
+           ;; (printf "\tfound agent ~a~n" found-id)
+           (hash-set! found found-id true)))
+       
        (define result (λ ()  (agentset (agentset-breed (as))
                                        (agentset-plural (as))
                                        (agentset-base-fields (as))
@@ -254,10 +263,9 @@
                                          (values id
                                                  (hash-ref (agentset-agents (as)) id)))
                                        )))
+       result]
+      )))
                                           
-       (hash-set! memo key result)
-       result])
-       ])))
 (define sniff sniff-memo)
 
 ;; The 'ask' macro is easier now. It isn't 'ask-turtles' and 'ask-fishes,' but instead
