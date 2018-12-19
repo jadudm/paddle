@@ -23,8 +23,17 @@
 
 (define minimum-separation 1)
 
+(define (current-vision)
+  (* (/ (get eyesight) 100) 4))
+
 ;; I want to set up my turtles.
 (define (setup)
+  (widgets
+   (slider boids 'bursty 1 100)
+   (slider boids 'wiggly 1 100)
+   (slider boids 'eyesight 1 100)
+   )
+  
   ;; Then, I want to ask my turtles to scatter themselves
   ;; randomly around the universe. They are mauve.
   (ask boids
@@ -35,7 +44,7 @@
 
    ;; This is fun... let's vary how far boids
    ;; can see! Some flock better than others...
-   (set vision 8)
+   (set vision 4)
    
    (set color (rgb 255 255 0))
    )
@@ -46,8 +55,8 @@
 (define (go)
   (ask boids
        (flock)
-       (wiggle 3)
-       (move .5)
+       (wiggle (* (/ (get wiggly) 100) 10))
+       (move (+ 0.5 (/ (get bursty) 100)))
        )
   )
 
@@ -85,7 +94,7 @@
 
 ;; This is a thing boids do.
 (define (flock)
-  (define flockmates (other (sniff boids (get vision))))
+  (define flockmates (other (sniff boids (current-vision))))
   (when (any? flockmates)
     (define nearest-neighbor
       (min-of flockmates distance-from))
@@ -142,8 +151,8 @@
 ;; to the left or to the right.
 (define (wiggle amount)
   (if (> (random 100) 50)
-      (right (random amount))
-      (left (random amount))))
+      (right amount)
+      (left amount)))
 
 ;; Shimmering means we randomly choose a new color.
 ;; None of my turtles currently shimmer.

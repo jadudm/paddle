@@ -218,11 +218,51 @@
       (set! points (cons (list x-range y-range) points))))
   points)
 
-(define sniff
+;; Memoizing sniff...
+
+(define (hash3 a b c)
+  (* (* (* (* a 37) b) 37) c))
+  
+(define sniff-memo
+  (let ([memo (make-hash)])
+    (case-lambda
+      [(radius)
+       (sniff (hash-ref agentsets
+                        (hash-ref (agent-fields (current-agent)) 'plural)) radius)]
+      [(as radius)
+       (define key (hash3 (get (current-agent) xcor)
+                          (get (current-agent) ycor)
+                          radius))
+       (cond
+         [(hash-has-key? memo key)
+          (hash-ref memo key)]
+         [else
+       (define points (generate-radius
+                       (get (current-agent) xcor)
+                       (get (current-agent) ycor)
+                       radius))
+       (define patch-ids (map ->patch
+                              (map first points)
+                              (map second points)))
+       (define found (make-hash))
+       (for ([id patch-ids])
+         (define h (get-backing-from-patch-id id))
+         (for ([(id agent) h])
+           (hash-set! found id agent)))
+       (define result (λ ()  (agentset (agentset-breed (as))
+                                       (agentset-plural (as))
+                                       (agentset-base-fields (as))
+                                       found)))
+       (hash-set! memo key result)
+       result])
+       ])))
+(define sniff sniff-memo)
+  
+(define sniff-works-faster
   (case-lambda
     [(radius)
      (sniff (hash-ref agentsets
-                 (hash-ref (agent-fields (current-agent)) 'plural)) radius)]
+                      (hash-ref (agent-fields (current-agent)) 'plural)) radius)]
     [(as radius)
      (define points (generate-radius
                      (get (current-agent) xcor)
@@ -260,9 +300,9 @@
                             (map second points)))
      
      #;(printf "agent ~a w/ patch-id ~a looking at patches ~a~n"
-             (get (current-agent) id)
-             (get (current-agent) patch-id)
-             patch-ids)
+               (get (current-agent) id)
+               (get (current-agent) patch-id)
+               patch-ids)
      
      (define found (make-hash))
      ;; (define as-plural (hash-ref (agent-fields (current-agent)) 'plural))
