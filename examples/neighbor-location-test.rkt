@@ -1,19 +1,13 @@
 #lang racket
 
-(require "base.rkt"
-         "agentsets.rkt"
-         "world.rkt"
-         "interface.rkt"
-         "patches.rkt"
-         "types.rkt"
-         )
+(require paddle)
 
-(make-world 200 200 500 500)
-(tick-pause (/ 1 30))
+(make-world 10 10 400 400)
+;;(tick-pause (/ 1 60))
 
 (define get-neighbors
-  (match-lambda*
-    [(list x y)
+  (case-lambda
+    [(x y)
      (define n empty)
      (for ([x-offset (list -1 0 1)])
        (for ([y-offset (list -1 0 1)])
@@ -24,7 +18,7 @@
                                (wrap new-y (get global world-rows)))
                          n)))))
        (map ->patch (map first n) (map second n))]
-    [(list pid)
+    [(pid)
      (parameterize ([current-patch pid])
        (get-neighbors (get patch pxcor)
                       (get patch pycor)))]
@@ -38,7 +32,7 @@
        (set patch neighbors (get-neighbors (current-patch)))
        (clear-patch! (current-patch))
        
-       (when (zero? (random 19))
+       (when (zero? (random 6))
          (set patch pcolor yellow)
          (set patch alive? true))
        ))
@@ -51,11 +45,43 @@
         (set! found-alive (add1 found-alive)))))
   found-alive)
 
+(define special 0)
+(define state 'draw)
 
 (define (go)
+  ;;(printf "SPECIAL ~a~n" special)
+  ;;(printf "----------~n")
+  
+  (parameterize ([current-patch special])
+    (cond
+      [(equal? state 'draw)
+       
+       (define n (get-neighbors (get patch pid)))
+       ;;(printf "px ~a py: ~a~n" (get patch pxcor) (get patch pycor))
+       
+       (ask-patches (using n)
+                    (set patch pcolor (rgb 255 255 0))
+                    ;;(printf "\tpx ~a py: ~a~n" (get patch pxcor) (get patch pycor))
+                    )
+       (set patch pcolor (rgb 255 0 0))
+       ]
+      [(equal? state 'clear)
+       (ask patches (clear-patch!))
+       ]))
+  
+  (cond
+    [(equal? state 'draw)
+     (set! state 'clear)]
+    [(equal? state 'clear)
+     (set! special (modulo (add1 special) (* (get global world-cols)
+                                             (get global world-rows))))
+     (set! state 'draw)])
+  )
+
+(define (go2)
   (ask patches
        (define na (neighbors-alive (get patch neighbors)))
-       #;(when (and (> (ticker) 30) (< (get patch pid) 10))
+       (when (and (> (ticker) 30) (< (get patch pid) 10))
          (printf "p ~a na ~a~n" (get patch pid) na))
        ;;(printf "pid: ~a na: ~a~n" (current-patch) na)
        (cond

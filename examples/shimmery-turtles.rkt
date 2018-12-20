@@ -1,12 +1,6 @@
 #lang racket
 
-(require "base.rkt"
-         "agentsets.rkt"
-         "world.rkt"
-         "interface.rkt"
-         "patches.rkt"
-         "types.rkt"
-         )
+(require paddle)
 
 ;; I must create the world first.
 (make-world 100 100 700 700)
@@ -60,7 +54,7 @@
   ;; Then, I ask all the not-special turtles to clear the patch
   ;; they are on.
   (ask (with turtles (not (zero? (get id))))
-       (clear-patch))
+       (clear-patch!))
 
   ;; Finally,  I ask the special turtles to use the slider values
   ;; to set their patches to a pretty color.

@@ -1,11 +1,6 @@
 #lang racket
-(require "base.rkt"
-         "agentsets.rkt"
-         "world.rkt"
-         "interface.rkt"
-         "patches.rkt"
-         "types.rkt"
-         )
+
+(require paddle)
 
 (make-world 100 100 600 600)
 
@@ -26,7 +21,7 @@
        (set patch pcolor (get color)))
   (ask (with midges (odd? (get id)))
        (move .5)
-       (clear-patch))
+       (clear-patch!))
   )
 
 (run-world setup go)

@@ -1,12 +1,6 @@
 #lang racket
 
-(require "base.rkt"
-         "agentsets.rkt"
-         "world.rkt"
-         "interface.rkt"
-         "patches.rkt"
-         "types.rkt"
-         )
+(require paddle)
 
 (make-world 200 200 600 600)
 ;(tick-pause (/ 1 30))

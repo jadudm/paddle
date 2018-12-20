@@ -1,11 +1,6 @@
 #lang racket
 
-(require "base.rkt"
-         "agentsets.rkt"
-         "world.rkt"
-         "interface.rkt"
-         "types.rkt"
-         )
+(require paddle)
 
 ;; I must create the world first.
 (make-world 200 200 800 800)
