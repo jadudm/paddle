@@ -48,9 +48,10 @@
     (define row (coordinate-y coord))
     (begin
       (glBegin GL_QUADS)
-      (define r (rgb-color-r (get patch pcolor)))
-      (define g (rgb-color-g (get patch pcolor)))
-      (define b (rgb-color-b (get patch pcolor)))
+      (define pcolor (get patch pcolor))
+      (define r (rgb-color-r pcolor))
+      (define g (rgb-color-g pcolor))
+      (define b (rgb-color-b pcolor))
       ;;(printf "draw px ~a py ~a~n" col row)
       ;;(sleep 0)
         
@@ -133,7 +134,8 @@
 (define (add-thread-to-kill! t)
   (set! threads-to-kill (cons t threads-to-kill)))
 
-(define (run-world setup go)
+(define (run-world setup go
+                   #:interface [interface false])
 
   (printf "Building frame.~n")
   (define-values (screen-x screen-y)
@@ -151,6 +153,11 @@
 
   (thread (λ ()
             (printf "Running setup.~n")
+
+            ;; Setup the interface first, if it exists.
+            (when interface
+              (interface))
+            
             (setup)
             (collect-garbage 'major)
             (printf "Done with setup.~n")

@@ -4,6 +4,7 @@
          "agentsets.rkt"
          "world.rkt"
          "interface.rkt"
+         "types.rkt"
          )
 
 ;; I must create the world first.
@@ -26,13 +27,15 @@
 (define (current-vision)
   (* (/ (get eyesight) 100) 4))
 
-;; I want to set up my turtles.
-(define (setup)
-  (widgets
+(define (setup-interface)
+   (widgets
    (slider boids 'bursty 1 100)
    (slider boids 'wiggly 1 100)
    (slider boids 'eyesight 1 100)
-   )
+   ))
+
+;; I want to set up my turtles.
+(define (setup)
   
   ;; Then, I want to ask my turtles to scatter themselves
   ;; randomly around the universe. They are mauve.
@@ -64,7 +67,7 @@
 ;; Takes an agent, returns a function
 ;; that consumes an agent, and returns the distance
 ;; between the two.
-(define distance-from
+(define distance-from-me
   (lambda (them)
     (define me (current-agent))
     (define me-x (get me xcor))
@@ -73,9 +76,6 @@
     (define them-y (get them ycor))
     (+ (abs (- them-x me-x))
        (abs (- them-y me-y)))))
-
-(define (distance-from-me a)
-  (distance-from a))
 
 ;; min-of
 ;; takes a comparator of one arg, and
@@ -97,7 +97,7 @@
   (define flockmates (other (sniff boids (current-vision))))
   (when (any? flockmates)
     (define nearest-neighbor
-      (min-of flockmates distance-from))
+      (min-of flockmates distance-from-me))
     (cond
       [(< (distance-from-me nearest-neighbor)
           minimum-separation)
@@ -163,4 +163,4 @@
 
 
 ;; Finally, I run the world.
-(run-world setup go)
+(run-world setup go #:interface setup-interface)

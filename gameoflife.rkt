@@ -8,7 +8,7 @@
          "types.rkt"
          )
 
-(make-world 200 200 800 800)
+(make-world 200 200 600 600)
 ;(tick-pause (/ 1 30))
 
 (define get-neighbors
@@ -78,12 +78,12 @@
        (cond
          [(get patch alive?)
           (cond
-            [(member na '(0 1))
+            [(or (zero? na) (= na 1))
              (set patch alive? false)
              (clear-patch! (current-patch))]
-            [(member na '(2 3))
+            [(or (= na 2) (= na 3))
              'DieAnotherDay]
-            [(>= na 4)
+            [(> na 3)
              (set patch alive? false)
              (clear-patch! (current-patch))]
             )]

@@ -149,15 +149,26 @@
 ;; Can we ever get a value outside the range? I don't know. This has to do with
 ;; whether we map by wrapping or not.
 
+
+(define (wrap val max)
+  ;;(printf "val ~a max ~a~n" val max)
+  (define v (exact-floor val))
+  (cond
+    [(>= val max) (modulo v max)]
+    [(< val 0) (modulo (+ max v) max)]
+    [else val])
+  )
+
 ;; This needs to be memoized for performance.
 ;; Actually, it is probably not performance critical.
 (define ->patch
   (case-lambda
     [(x y)
+     ;;(printf "x ~a y ~a~n" x y)
      ;(define edge-y ((get global edge-y) (exact-floor y)))
      ;(define edge-x ((get global edge-x) (exact-floor x)))
-     (define xp (exact-floor x))
-     (define yp (exact-floor y))
+     (define xp (wrap (exact-floor x) (get global world-cols)))
+     (define yp (wrap (exact-floor y) (get global world-rows)))
      
      (+ (* yp (get global world-rows)) xp)]
     [(agent)

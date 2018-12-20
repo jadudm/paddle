@@ -387,12 +387,6 @@
   (define dx (* magnitude (cos dir)))
   (values (+ x dx) (+ y dy)))
 
-(define (wrap val max)
-  (cond
-    [(>= val max) (modulo val max)]
-    [(< val 0) (modulo (+ max val) max)]
-    [else val])
-  )
 
 (define (move magnitude)
   (define direction (get (current-agent) direction))
