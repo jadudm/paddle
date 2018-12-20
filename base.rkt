@@ -64,14 +64,15 @@
     [(_get k)
      #`(cond
          ;; This should work for patches if patches are agents.
-         [(and (current-agent)
+         [(and (agent? (current-agent))
                (hash-has-key? (agent-fields (current-agent)) (quote k)))
           (hash-ref (agent-fields (current-agent)) (quote k))]
          [else (error 'get "No key found for ~a" (quote k))])]
     [(_get a k)
      #`(cond
          ;; This should work for patches if patches are agents.
-         [(hash-has-key? (agent-fields a) (quote k))
+         [(and (agent? a)
+               (hash-has-key? (agent-fields a) (quote k)))
           (hash-ref (agent-fields a) (quote k))]
          [else (error 'get "No key found for ~a" (quote k))])]
     ))
@@ -88,7 +89,8 @@
      #`(set-patch-field! (current-patch) (quote k) expr)]
     
     [(_set k expr)
-     #`(hash-set! (agent-fields (current-agent)) (quote k) expr)]
+     #`(when (agent? (current-agent))
+         (hash-set! (agent-fields (current-agent)) (quote k) expr))]
     
     [(_set a k expr)
      #`(hash-set! (agent-fields a) (quote k) expr)]    
@@ -152,22 +154,32 @@
 (define ->patch
   (case-lambda
     [(x y)
-     (define edge-y ((get global edge-y) (exact-floor y)))
-     (define edge-x ((get global edge-x) (exact-floor x)))
-     (define world-rows (get global world-rows))
-     (exact-floor (+ (* edge-y world-rows) edge-x))]
+     ;(define edge-y ((get global edge-y) (exact-floor y)))
+     ;(define edge-x ((get global edge-x) (exact-floor x)))
+     (define xp (exact-floor x))
+     (define yp (exact-floor y))
+     
+     (+ (* yp (get global world-rows)) xp)]
     [(agent)
      (->patch (hash-ref (agent-fields agent) 'xcor)
               (hash-ref (agent-fields agent) 'ycor))]
     ))
 
 
-(define (clear-patch)
-  (clean-patch! (->patch (current-agent))))
+(define clear-patch!
+  (case-lambda
+    [()
+     (cond
+       [(number? (current-patch)) (clear-patch! (current-patch))]
+       [else
+        (clear-patch! (->patch (current-agent)))])]
+    [(pid)
+     (clean-patch! pid)]))
+     
 
 
 ;; values
-(struct coordinate (x y))
+
 (define (get-patch-coordinate pid)
   (coordinate (quotient  pid (get global world-cols))
               (remainder pid (get global world-rows))))

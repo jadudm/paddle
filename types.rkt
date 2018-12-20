@@ -12,9 +12,11 @@
 (struct agentset (breed plural base-fields agents)
   #:transparent #:mutable)
 
+(struct coordinate (x y) #:transparent)
 
 (struct rgb-color (r g b) #:transparent)
 
 (struct iv (agent-variable value agentset) #:transparent)
 (struct slider (agentset var low high)
   #:transparent)
+

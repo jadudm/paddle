@@ -77,27 +77,6 @@
      #`(give* as (quote (fields ...)))
      ]))
 
-(define-syntax (give-old stx)
-  (syntax-case stx ()
-    [(_ as fields ...)
-     ;; FIXME
-     ;; This sets the global params for the agentset. However,
-     ;; it should also update all agents.
-     #`(begin
-         (append-agentset-base-fields! as (quote (fields ...)))
-         (printf "Dealing with ~a~n" (as))
-         (for ([(id agent) (agentset-agents (as))])
-           (printf "Looking at agent ~a~n" id)
-           ;; Unless they already have a value there, we'll
-           ;; assign a value of zero, so every agent gets the key.
-           (for ([k (quote (fields ...))])
-             (printf "Adding field: ~a~n" k)
-             (unless (hash-has-key? (agent-fields agent) k)
-               (printf "~a added to ~a:~a~n" k (agentset-breed (as)) id)
-               (hash-set! (agent-fields agent) k 0)))))
-     ]))
-
-
 (define (default-draw-function)
   (let ()
     (define turtle-x (get xcor))
@@ -178,34 +157,6 @@
                   (agentset-plural (as))
                   (agentset-base-fields (as))
                   h)))
-
-
-(define (set-current-patch a)
-  ;; Floor the agent's position, multiply, and use
-  ;; that as a pretend patch-id to work backwards.
-  (define xcor (get a xcor))
-  (define ycor (get a ycor))
-  (define patch-id (->patch xcor ycor))
-  
-  ;; Patches are world-cols x world-rows. And, their ids are
-  ;; (define pxcor (remainder patch-id (get world-cols)))
-  ;; (define pycor (quotient  patch-id (get world-rows))))
-  (define hash:patches (agentset-agents (hash-ref agentsets 'patches)))
-  (cond
-    ;; What if there are no patches in this world?
-    [(zero? (hash-count hash:patches)) (void)]
-    [(hash-has-key? hash:patches patch-id)
-     (current-patch (hash-ref hash:patches patch-id))]
-    [else
-     (error 'set-current-patch
-            "xcor ~a ycor ~a e-x ~a e-y ~a ->patch ~a patch-id ~a~n"
-            xcor ycor
-            ((get global edge-x) (exact-floor xcor))
-            ((get global edge-y) (exact-floor ycor))
-            (->patch xcor ycor)
-            patch-id)])
-  )
-
   
 
 (define (generate-radius x y r)
@@ -279,13 +230,36 @@
                                           
 (define sniff sniff-memo)
 
+(require (for-syntax syntax/parse))
+
+(define-syntax (ask-patches stx)
+  (syntax-parse stx
+    ;; What about a patchset? It should be a list of pids.
+    [(_ap ((~datum using) ps) bodies:expr ...)
+     #`(for ([pid ps])
+         (parameterize ([current-patch pid])
+           bodies ...))]
+    
+    [(_ap bodies:expr ...)
+     #`(for ([i (range (vector-length the-world))])
+         (parameterize ([current-patch i])
+           bodies ...))]
+
+    ))
+
 ;; The 'ask' macro is easier now. It isn't 'ask-turtles' and 'ask-fishes,' but instead
 ;; just 'ask' followed by an agentset.
 (define-syntax (ask stx)
-  (syntax-case stx ()
-    [(_ as bodies ...)
-     #`(begin
-         (for ([(id agent) (agentset-agents (as))])
+  (syntax-parse stx
+    [(_ask (~datum patches) bodies:expr ...)
+     ;; Need to visit all of the patches.
+     ;; This will be expensive.
+     #`(for ([i (range (vector-length the-world))])
+         (parameterize ([current-patch i])
+           bodies ...))
+     ]
+    [(_ask as bodies:expr ...)
+     #`(for ([(id agent) (agentset-agents (as))])
            ;; (printf "ask agent ~a ~n" agent)
            (current-agent agent)
            (current-patch (->patch (hash-ref (agent-fields agent) 'xcor)
@@ -293,7 +267,7 @@
            ;; FIXME I don't think this is needed.
            ;; (set-current-patch agent)
            bodies ...)
-         )]))
+     ] ))
 
 ;; However, I can't test anything yet, because I can't create any agentsets.
 ;; I need to be able to do that. I could 'create-turtles', and then I need
@@ -355,29 +329,6 @@
                          subset)))
      ]))
 
-(define-syntax (have stx)
-  (syntax-case stx ()
-    [(_ var)
-     #`(hash-ref (agent-fields (current-agent)) (quote var) false)]
-    [(_ a var)
-     #`(hash-ref (agent-fields a) (quote var) false)]
-    ))
-
-
-(define-syntax (agent-get stx)
-  (syntax-case stx ()
-    [(_ var)
-     #`(hash-ref (agent-fields (current-agent)) (quote var) false)]
-    [(_ a var)
-     #`(hash-ref (agent-fields a) (quote var) false)]))
-
-(define-syntax (agent-set! stx)
-  (syntax-case stx ()
-    [(_ var expr)
-     #`(hash-set! (agent-fields (current-agent)) (quote var) expr)]
-    [(_ a var expr)
-     #`(hash-set! (agent-fields a) (quote var) expr)]))
-
 (define-syntax (any? stx)
   (syntax-case stx ()
     [(_ as)
@@ -436,11 +387,12 @@
   (define dx (* magnitude (cos dir)))
   (values (+ x dx) (+ y dy)))
 
-(define (wrap v edge)
+(define (wrap val max)
   (cond
-    [(> v edge) 0]
-    [(<= v 0) edge]
-    [else v]))
+    [(>= val max) (modulo val max)]
+    [(< val 0) (modulo (+ max val) max)]
+    [else val])
+  )
 
 (define (move magnitude)
   (define direction (get (current-agent) direction))
@@ -450,10 +402,10 @@
             direction magnitude))
   (set (current-agent)
        xcor
-       (wrap new-x (get global world-rows)))
+       (wrap new-x (get global world-cols)))
   (set (current-agent)
        ycor
-       (wrap new-y (get global world-cols)))
+       (wrap new-y (get global world-rows)))
 
   (set (current-agent)
        prev-patch-id
@@ -499,3 +451,10 @@
 
 
 
+(define-syntax (increment! stx)
+  (syntax-parse stx
+    [(_ var:id)
+     #`(set! var (add1 var))]
+    [(_ var:id ammount:number)
+     #`(set! var (+ var ammount))]
+    ))

@@ -28,8 +28,8 @@
   (setup-backing-world! cols rows)
   (create-patches cols rows)
   (printf "Done making world.~n")
-  (printf "Precompute sniffs to distance 6.~n")
-  (for ([dist (range 1 6)])
+  #;(printf "Precompute sniffs to distance 6.~n")
+  #;(for ([dist (range 1 6)])
     (printf "\tdist: ~a~n" dist)
     (for ([x (range cols)])
       (for ([y (range rows)])
@@ -152,8 +152,9 @@
   (thread (λ ()
             (printf "Running setup.~n")
             (setup)
-            (printf "Done with setup.~n")
             (collect-garbage 'major)
+            (printf "Done with setup.~n")
+            
             (channel-put flag-ch true)))
   
   (define draw-thread
@@ -162,6 +163,9 @@
               (channel-get flag-ch)
               
               (send win show #t)
+              (send gl on-paint)
+              (tick)
+              
               (let loop ()
                 ;; Update turtles every third tick, if the interface is dirty.
                 (when interface-dirty?
@@ -174,7 +178,8 @@
                       (hash-set! (agent-fields agent)
                                  (iv-agent-variable ivs)
                                  (iv-value ivs)))))
-                
+
+                ;; (printf "About to run (go)~n")
                 (go)
                 (send gl on-paint)
                 (tick)
