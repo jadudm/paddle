@@ -8,4 +8,4 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 -- 
 
-The Paddle icon was created by Freepic (https://www.freepik.com/) and licensed under a Creative Commons BY 3.0 license. 
+The Paddle icon was created by Freepic (https://www.freepik.com/) and licensed under a Creative Commons BY 3.0 license. Retrieved from https://www.flaticon.com/free-icon/paddle_1372440.
