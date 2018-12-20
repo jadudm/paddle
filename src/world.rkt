@@ -19,23 +19,22 @@
   (ticker (add1 (ticker)))
   (sleep (tick-pause)))
 
-(define (make-world cols rows width height)
-  (set global world-cols cols)
-  (set global world-rows rows)
-  (set global frame-width width)
-  (set global frame-height height)
-  ;; For tracking agent locations.
-  (setup-backing-world! cols rows)
-  (create-patches cols rows)
-  (printf "Done making world.~n")
-  #;(printf "Precompute sniffs to distance 6.~n")
-  #;(for ([dist (range 1 6)])
-    (printf "\tdist: ~a~n" dist)
-    (for ([x (range cols)])
-      (for ([y (range rows)])
-        (sniff 'preload x y dist))))
-  )
-
+(define make-world
+  (case-lambda
+    [(cols rows width height)
+     (set global world-cols cols)
+     (set global world-rows rows)
+     (set global frame-width width)
+     (set global frame-height height)
+     ;; For tracking agent locations.
+     (setup-backing-world! cols rows)
+     (create-patches cols rows)
+     (printf "Done making world.~n")]
+    [(world)
+     (make-world world world 600 600)]
+    [(world frame)
+     (make-world world world frame frame)]))
+     
 (define (draw-patches)
   (define side 1)
   ;;(printf "Trying to draw patches.~n")
