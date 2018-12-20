@@ -222,13 +222,24 @@
   
 (define sniff-memo
   (let ([memo (make-hash)])
-    (case-lambda
-      [(radius)
+    (match-lambda*
+      [(list (quote preload) x y (var radius))
+       ;;(printf "sniff-memo preload~n")
+       (define key (hash3 x y radius))
+       (define points (generate-radius x y radius))
+       (define patch-ids (map ->patch
+                              (map first points)
+                              (map second points)))
+       (hash-set! memo key patch-ids)
+       ]
+      [(list (var radius))
+       ;;(printf "sniff radius~n")
        (sniff (hash-ref agentsets
                         (hash-ref (agent-fields (current-agent)) 'plural)) radius)]
-      [(as radius)
-       (define key (hash3 (get (current-agent) xcor)
-                          (get (current-agent) ycor)
+      [(list (var as) (var radius))
+       ;;(printf "sniff as radius~n")
+       (define key (hash3 (exact-floor (get (current-agent) xcor))
+                          (exact-floor (get (current-agent) ycor))
                           radius))
 
        (define patch-ids 0)
@@ -463,7 +474,16 @@
 (define (left d)
   (set (current-agent) direction (- (get (current-agent) direction) d)))
 
-
+(define die
+  (case-lambda
+    [() (die (current-agent))]
+    [(agent)
+     (define as (hash-ref agentsets (hash-ref (agent-fields (current-agent))
+                                                   'plural)))
+     (define aid (agent-id (current-agent)))
+     (remove-from-agentset! (λ () as) aid)
+     (remove-from-backing! agent)
+     ]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Patches are not that different.

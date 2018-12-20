@@ -9,7 +9,7 @@
          )
 
 ;; I must create the world first.
-(make-world 200 200 600 600)
+(make-world 100 100 700 700)
 
 ;; The world does not always need patches.
 ;; This world does.
@@ -19,7 +19,7 @@
 (create-breed turtle turtles)
 
 ;; I want many turtles.
-(create turtles 10)
+(create turtles 2000)
 
 ;; I could slow things down.
 ;;(tick-pause (/ 1 60))
@@ -70,9 +70,10 @@
                               (random (get b))
                               ))
        
-       (ask (other (sniff turtles 2))
-            (printf "found ~a~n" (get (current-agent) id))
+       (ask (other (sniff turtles 6))
+            ;;(printf "found ~a~n" (get (current-agent) id))
             (shimmer (current-agent))
+            (die)
             ))
   )
 

@@ -49,6 +49,15 @@
   (hash-set! (vector-ref curr-world curr) id true)
   )
 
+(define (remove-from-backing! ag)
+  (define prev (hash-ref (agent-fields ag) 'prev-patch-id))
+  (define curr (hash-ref (agent-fields ag) 'patch-id))
+  (define id (agent-id ag))
+  (when (hash-has-key? (vector-ref curr-world prev) id)
+    (hash-remove! (vector-ref curr-world prev) id))
+  (when (hash-has-key? (vector-ref curr-world curr) id)
+    (hash-remove! (vector-ref curr-world curr) id)))
+
 ;; Return everyone at the location of the given agent.
 ;; FIXME These need to be renamed to something like "get-agent-ids-at..."
 (define (get-backing-from-agent ag)

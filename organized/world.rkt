@@ -6,6 +6,7 @@
          "backing.rkt"
          "patches.rkt"
          "types.rkt"
+         "agentsets.rkt"
          )
 
 (define flag-ch (make-channel))
@@ -27,6 +28,12 @@
   (setup-backing-world! cols rows)
   (create-patches cols rows)
   (printf "Done making world.~n")
+  (printf "Precompute sniffs to distance 6.~n")
+  (for ([dist (range 1 6)])
+    (printf "\tdist: ~a~n" dist)
+    (for ([x (range cols)])
+      (for ([y (range rows)])
+        (sniff 'preload x y dist))))
   )
 
 (define (draw-patches)
