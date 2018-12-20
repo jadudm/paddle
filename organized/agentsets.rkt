@@ -1,9 +1,13 @@
 #lang racket
 (require syntax/parse
          racket/contract
-         (only-in racket/draw color%)
          sgl/gl)
-(require "base.rkt")
+
+(require "base.rkt"
+         "backing.rkt"
+         "patches.rkt"
+         "types.rkt"
+         )
 
 (provide (all-defined-out))
 
@@ -18,7 +22,8 @@
                                  (quote plural)
                                  (hash-keys (make-default-agent-fields
                                              'unused-id
-                                             (quote breed)))
+                                             (quote breed)
+                                             (quote plural)))
                                  (make-hash)))
          (define plural
            (λ () (hash-ref agentsets (quote plural))))
@@ -46,7 +51,26 @@
   (hash-set! agentsets (agentset-plural (as)) new-agentset))
 
 ;; This has to happen regardless of when
+(define (give* as . fields)
+  (append-agentset-base-fields! as fields)
+  ;;(printf "Dealing with ~a~n" (as))
+  (for ([(id agent) (agentset-agents (as))])
+    ;;(printf "Looking at agent ~a~n" id)
+    ;; Unless they already have a value there, we'll
+    ;; assign a value of zero, so every agent gets the key.
+    (for ([k fields])
+      ;;(printf "Adding field: ~a~n" k)
+      (unless (hash-has-key? (agent-fields agent) k)
+        ;;(printf "~a added to ~a:~a~n" k (agentset-breed (as)) id)
+        (hash-set! (agent-fields agent) k 0)))))
+
 (define-syntax (give stx)
+  (syntax-case stx ()
+    [(_ as fields ...)
+     #`(give* as (quote (fields ...)))
+     ]))
+
+(define-syntax (give-old stx)
   (syntax-case stx ()
     [(_ as fields ...)
      ;; FIXME
@@ -55,32 +79,27 @@
      #`(begin
          ;; First, extend the fields the agentset carries.
          (append-agentset-base-fields! as (quote (fields ...)))
-
-         ;; Then, extend all of the existing agents.
-         ;; (printf "Dealing with ~a~n" (as))
+         (printf "Dealing with ~a~n" (as))
          (for ([(id agent) (agentset-agents (as))])
-           ;; (printf "Looking at agent ~a~n" id)
+           (printf "Looking at agent ~a~n" id)
            ;; Unless they already have a value there, we'll
            ;; assign a value of zero, so every agent gets the key.
            (for ([k (quote (fields ...))])
-             ;; (printf "Adding field: ~a~n" k)
+             (printf "Adding field: ~a~n" k)
              (unless (hash-has-key? (agent-fields agent) k)
-               ;; (printf "~a added to ~a:~a~n" k (agentset-breed (as)) id)
-               (hash-set! (agent-fields agent) k 'default)))))
+               (printf "~a added to ~a:~a~n" k (agentset-breed (as)) id)
+               (hash-set! (agent-fields agent) k 0)))))
      ]))
 
-;; FIXME: There are 14 core colors.
-;; It will take some effort to build the NetLogo color table.
-(define/contract (rgb r g b)
-  (-> byte? byte? byte? (is-a?/c color%))
-  (make-object color% r g b))
 
 (define (default-draw-function)
   (let ()
     (define turtle-x (get xcor))
     (define turtle-y (get ycor))
     ;;(printf "a ~a x ~a y ~a~n" (agent-id (current-agent)) turtle-x turtle-y)
+    ;; (glClear GL_DEPTH_BUFFER_BIT)
     (glPushMatrix)
+    
     (glTranslatef turtle-x turtle-y 0)
     (glRotatef (get direction) 0 0 1)
     (glTranslatef (- turtle-x) (- turtle-y) 0)
@@ -88,40 +107,44 @@
     (glBegin GL_TRIANGLES)
     ;; These return bytes.
     (define color-obj (get color))
-    (glColor3ub (send color-obj red)
-                (send color-obj green)
-                (send color-obj blue))
+    (glColor3ub (rgb-color-r color-obj)
+                (rgb-color-g color-obj)
+                (rgb-color-b color-obj))
+    
     ;; FIXME This does not center the agent in a square.          
-    (glVertex3f turtle-x (+ (/ 1 2) turtle-y) 0)
-    (glVertex3f (- turtle-x (/ 1 2)) (- turtle-y (/ 1 2)) 0)
-    (glVertex3f (+ turtle-x (/ 1 2)) (- turtle-y (/ 1 2)) 0)
+    (glVertex3f turtle-x (+ (/ 1 2) turtle-y) 0.1)
+    (glVertex3f (- turtle-x (/ 1 2)) (- turtle-y (/ 1 2)) 0.1)
+    (glVertex3f (+ turtle-x (/ 1 2)) (- turtle-y (/ 1 2)) 0.1)
     (glEnd)
 
     (glBegin GL_QUADS)
     (glColor3ub 255 255 255)
-    (glVertex3f (- turtle-x .1) (- turtle-y .1) 0)
-    (glVertex3f (- turtle-x .1) (+ turtle-y .1) 0)
-    (glVertex3f (+ turtle-x .1) (+ turtle-y .1) 0)
-    (glVertex3f (+ turtle-x .1) (- turtle-y .1) 0)
+    (glVertex3f (- turtle-x .1) (- turtle-y .1) 0.2)
+    (glVertex3f (- turtle-x .1) (+ turtle-y .1) 0.2)
+    (glVertex3f (+ turtle-x .1) (+ turtle-y .1) 0.2)
+    (glVertex3f (+ turtle-x .1) (- turtle-y .1) 0.2)
+    (glColor3ub 0 0 0)
     (glEnd)
-    
-          
     (glPopMatrix)
     ))
 
 ;; We need a default fieldset for agents.
-(define/contract (make-default-agent-fields id breed)
-  (-> (or/c symbol? number?) symbol? hash?) 
+(define/contract (make-default-agent-fields id breed plural)
+  (-> (or/c symbol? number?) symbol? symbol? hash?) 
   (define h (make-hash))
   (hash-set! h 'id id)
   (hash-set! h 'breed breed)
+  (hash-set! h 'plural plural)
   (hash-set! h 'xcor 0)
   (hash-set! h 'ycor 0)
+  
   (hash-set! h 'direction (random 360))
   (hash-set! h 'color (rgb (+ 64 (random 128))
                            (+ 64 (random 128))
                            (+ 64 (random 128))))
   (hash-set! h 'draw default-draw-function)
+  ;; What patch are we over?
+  (hash-set! h 'patch-id 0)
   h)
 
 
@@ -151,34 +174,20 @@
                   h)))
 
 
-;; Everything is in a coordinate system with OpenGL where the number of
-;; columns and rows is scaled to the height and width of the viewport.
-;; Therefore, [79.9, 79.9] will map to [79,79], which is less than 80x80.
-;; Can we ever get a value outside the range? I don't know. This has to do with
-;; whether we map by wrapping or not.
-(define (->patch a x y)
-  (define edge-y ((get global edge-y) (exact-floor y)))
-  (define edge-x ((get global edge-x) (exact-floor x)))
-  (define world-rows (get global world-rows))
-  
-  ;;(printf "\te-y ~a e-x ~a w-r ~a~n" edge-y edge-x world-rows)
-  
-  (exact-floor (+ (* edge-y world-rows) edge-x))
-  )
-
-
 (define (set-current-patch a)
   ;; Floor the agent's position, multiply, and use
   ;; that as a pretend patch-id to work backwards.
   (define xcor (get a xcor))
   (define ycor (get a ycor))
-  (define patch-id (->patch a xcor ycor))
+  (define patch-id (->patch xcor ycor))
   
   ;; Patches are world-cols x world-rows. And, their ids are
   ;; (define pxcor (remainder patch-id (get world-cols)))
   ;; (define pycor (quotient  patch-id (get world-rows))))
   (define hash:patches (agentset-agents (hash-ref agentsets 'patches)))
   (cond
+    ;; What if there are no patches in this world?
+    [(zero? (hash-count hash:patches)) (void)]
     [(hash-has-key? hash:patches patch-id)
      (current-patch (hash-ref hash:patches patch-id))]
     [else
@@ -187,10 +196,82 @@
             xcor ycor
             ((get global edge-x) (exact-floor xcor))
             ((get global edge-y) (exact-floor ycor))
-            (->patch a xcor ycor)
+            (->patch xcor ycor)
             patch-id)])
   )
+
   
+
+(define (generate-radius x y r)
+  (define points empty)
+  (for ([x-range (range (- x r) (+ x r))])
+    (for ([y-range (range (- y r) (+ y r))])
+      (set! points (cons (list x-range y-range) points))))
+  points)
+
+;; Memoizing sniff...
+
+(define (hash3 a b c)
+  (* (* (* (* a 37) b) 37) c))
+  
+(define sniff-memo
+  (let ([memo (make-hash)])
+    (match-lambda*
+      [(list (quote preload) x y (var radius))
+       ;;(printf "sniff-memo preload~n")
+       (define key (hash3 x y radius))
+       (define points (generate-radius x y radius))
+       (define patch-ids (map ->patch
+                              (map first points)
+                              (map second points)))
+       (hash-set! memo key patch-ids)
+       ]
+      [(list (var radius))
+       ;;(printf "sniff radius~n")
+       (sniff (hash-ref agentsets
+                        (hash-ref (agent-fields (current-agent)) 'plural)) radius)]
+      [(list (var as) (var radius))
+       ;;(printf "sniff as radius~n")
+       (define key (hash3 (exact-floor (get (current-agent) xcor))
+                          (exact-floor (get (current-agent) ycor))
+                          radius))
+
+       (define patch-ids 0)
+       
+       (cond
+         [(hash-has-key? memo key)
+          (set! patch-ids (hash-ref memo key))]
+         [else
+          (define points (generate-radius
+                          (get (current-agent) xcor)
+                          (get (current-agent) ycor)
+                          radius))
+          (set! patch-ids (map ->patch
+                                 (map first points)
+                                 (map second points)))
+          (hash-set! memo key patch-ids)])
+          
+       (define found (make-hash))
+       (for ([pid patch-ids])
+         ;; (printf "checking patch ~a~n" pid)
+         
+         (define h (get-backing-from-patch-id pid))
+         
+         (for ([(found-id _boolean_not_agent_) h])
+           ;; (printf "\tfound agent ~a~n" found-id)
+           (hash-set! found found-id true)))
+       
+       (define result (λ ()  (agentset (agentset-breed (as))
+                                       (agentset-plural (as))
+                                       (agentset-base-fields (as))
+                                       (for/hash ([(id _bool_) found])
+                                         (values id
+                                                 (hash-ref (agentset-agents (as)) id)))
+                                       )))
+       result]
+      )))
+                                          
+(define sniff sniff-memo)
 
 ;; The 'ask' macro is easier now. It isn't 'ask-turtles' and 'ask-fishes,' but instead
 ;; just 'ask' followed by an agentset.
@@ -218,9 +299,14 @@
     [(_ as bodies ...)
      #`(begin
          (for ([(id agent) (agentset-agents (as))])
-              (current-agent agent)
-              (set-current-patch agent)
-              bodies ...))]))
+           ;; (printf "ask agent ~a ~n" agent)
+           (current-agent agent)
+           (current-patch (->patch (hash-ref (agent-fields agent) 'xcor)
+                                   (hash-ref (agent-fields agent) 'ycor)))
+           ;; FIXME I don't think this is needed.
+           ;; (set-current-patch agent)
+           bodies ...)
+         )]))
 
 ;; However, I can't test anything yet, because I can't create any agentsets.
 ;; I need to be able to do that. I could 'create-turtles', and then I need
@@ -240,8 +326,11 @@
   (-> procedure? number? procedure?)
   (define h (agentset-agents (λ:as)))
   (define breed (agentset-breed (λ:as)))
-  (define start-id (hash-count h))
- 
+  (define plural (agentset-plural (λ:as)))
+  ;; This should guarantee globally unique agent ids.
+  (define start-id (get-next-agent-id))
+  (set-next-agent-id! (+ start-id num))
+  
   (for ([id (range num)])
     (define offset-id (+ id start-id))
     (when (zero? (modulo id 1000))
@@ -249,10 +338,7 @@
     
     ;; FIXME
     ;; I need a default set of values in the agent's fields.
-    (define default-fields (make-hash))
-    (unless (equal? breed 'patch)
-      (set! default-fields (make-default-agent-fields offset-id breed)))
-    
+    (define default-fields (make-default-agent-fields offset-id breed plural))
     ;; Add in the fields that have been added.
     (for ([f (agentset-base-fields (λ:as))])
       (unless (hash-has-key? default-fields f)
@@ -260,6 +346,8 @@
         (hash-set! default-fields f 0)))
     (define new-agent (agent offset-id breed default-fields))
     (add-to-agentset! λ:as new-agent)
+    ;; NEED TO DO THIS
+    ;; (update-location! new-agent 0 0)
     )
   λ:as)
 
@@ -308,6 +396,9 @@
 
 (define-syntax (any? stx)
   (syntax-case stx ()
+    [(_ as)
+     #`(let ()
+         (> (hash-count (agentset-agents (as))) 0))]
     [(_ as bool-exp)
      #`(let ()
          (define counter 0)
@@ -318,7 +409,8 @@
          ;; If the bool-exp was ever true, I incremented
          ;; the counter. So, I should return true.
          (> counter 0))
-     ]))
+     ]
+    ))
 
 
 ;; What if I want to know if everyone has a property?
@@ -378,6 +470,18 @@
   (set (current-agent)
        ycor
        (wrap new-y (get global world-cols)))
+
+  (set (current-agent)
+       prev-patch-id
+       (get patch-id))
+  
+  (set (current-agent)
+       patch-id
+       (->patch (get xcor) (get ycor)))
+
+  ;; For tracking agent locations.
+  (update-backing! (current-agent))
+
   )
 
 (define (right d)
@@ -386,7 +490,16 @@
 (define (left d)
   (set (current-agent) direction (- (get (current-agent) direction) d)))
 
-
+(define die
+  (case-lambda
+    [() (die (current-agent))]
+    [(agent)
+     (define as (hash-ref agentsets (hash-ref (agent-fields (current-agent))
+                                                   'plural)))
+     (define aid (agent-id (current-agent)))
+     (remove-from-agentset! (λ () as) aid)
+     (remove-from-backing! agent)
+     ]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Patches are not that different.
@@ -396,59 +509,8 @@
 
 ;;(define patches (agentset 'patch  'patches empty (make-hash)))
 ;;(add-agentset patches)
-(create-breed patch patches)
-(create-breed dirty-patch dirty-patches)
+;; (create-breed patch patches)
+;; (create-breed dirty-patch dirty-patches)
 
-;; If patches are indexed reasonably in the agentset, then it should be
-;; possible to index into them quickly.
-;;
-;; If they are sequential, I can mathematically map to the correct patch.
-;; This will all need to be done at run-time. The user needs to be able
-;; to change the number or rows/cols, and as a result, all of this needs to be
-;; dynamic.
-(define (create-patches)
-  (create patches (* (get global world-cols) (get global world-rows)))
-
-  (give patches dirty? draw pcolor pxcor pycor)
-  
-  (define counter 0)
-  (ask patches
-       (set patch* dirty? false)
-       (printf "setting patch ~a~n" (get patch id))
-       (printf "\tpatch ~a~n" (get (current-agent) id))
-       
-       (set patch* id (get patch id))
-       (set patch* draw draw-patch)
-       (set patch* pxcor (quotient (get patch id) (get global world-cols)))
-       (set patch* pycor (remainder  (get patch id) (get global world-rows)))
-       
-       (set! counter (add1 counter))
-       (when (zero? (modulo counter 1000))
-         (printf "\tcreate-patches: ~a~n" counter))
-       )
-  )
-
-(define (draw-patch)
-  (define side 1)
-  (define col (get patch pxcor))
-  (define row (get patch pycor))
-  (let ()
-    (glBegin GL_QUADS)
-    (define r (send (get patch pcolor) red))
-    (define g (send (get patch pcolor) green))
-    (define b (send (get patch pcolor) blue))
-    (when (zero? (get (current-patch) id))
-      (set! r 255)
-      (set! g 255)
-      (set! b 255)
-      )
-    (glColor3ub r g b)
-    
-    (glVertex3f (+ 0 (* side row)) (+ 0 (* col side)) 0)
-    (glVertex3f (+ side (* side row)) (+ 0 (* col side)) 0)
-    (glVertex3f (+ side (* side row)) (+ side (* col side)) 0)
-    (glVertex3f (+ 0 (* side row)) (+ side (* col side)) 0)
-    (glEnd)
-    ))
 
 

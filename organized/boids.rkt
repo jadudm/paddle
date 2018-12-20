@@ -2,109 +2,165 @@
 
 (require "base.rkt"
          "agentsets.rkt"
-         "world.rkt")
+         "world.rkt"
+         "interface.rkt"
+         )
 
-;; I'll make it a small world.
-;; The window is 600x600, so the number of
-;; columns essentially determines the resolution and
-;; size of the agents in the world.
-(make-world 10 10 100 100)
+;; I must create the world first.
+(make-world 200 200 800 800)
 
-;; Patches
-;(create-patches)
-(create patches (* (get global world-cols) (get global world-rows)))
+;; My creatures are called turtles.
+(create-breed boid boids)
 
-  (give patches dirty? draw pcolor pxcor pycor)
-  
-  (define counter 0)
-  (ask patches
-       (set patch* dirty? false)
+;; I want many turtles.
+(create boids 200)
 
-       ;; This only reports 0.
-       (printf "setting patch ~a~n" (get patch id))
-       
-       (set patch* id (get patch id))
-       (set patch* draw draw-patch)
-       (set patch* pxcor (quotient (get patch id) (get global world-cols)))
-       (set patch* pycor (remainder  (get patch id) (get global world-rows)))
-       
-       (set! counter (add1 counter))
-       (when (zero? (modulo counter 1000))
-         (printf "\tcreate-patches: ~a~n" counter))
-       )
+;; Boids have a vision limit
+(give boids vision)
 
+;; I could slow things down.
+;;(tick-pause (/ 1 60))
 
-;; At full speed, it runs pretty fast. This determines
-;; the pause length between ticks of the world.
-(tick-pause (/ 1 1))
-;; I'll have a breed of agents called fish.
-(create-breed turtle turtles)
-;; And I want this many fish.
-(create turtles 1)
+(define minimum-separation 1)
 
+(define (current-vision)
+  (* (/ (get eyesight) 100) 4))
 
-;; To set them up, I want to do the following.
-;; In this case, I do nothing.
+;; I want to set up my turtles.
 (define (setup)
-  (ask turtles
+  (widgets
+   (slider boids 'bursty 1 100)
+   (slider boids 'wiggly 1 100)
+   (slider boids 'eyesight 1 100)
+   )
+  
+  ;; Then, I want to ask my turtles to scatter themselves
+  ;; randomly around the universe. They are mauve.
+  (ask boids
    (set xcor (random (get global world-cols)))
    (set ycor (random (get global world-rows)))
-   (set color (rgb 255 0 0))
-   )
-  (ask (with turtles (member (get id) (range 5)))
-       (set color (rgb 255 255 0)))
-  )
-  
-(define (go)
-  (when (zero? (modulo (ticker) 120))
-    (printf "dp: ~a~n" (hash-count (agentset-agents (hash-ref agentsets 'dirty-patches)))))
-  
-  (ask turtles
-   (move 1)
-   (wiggle))
+ 
+   (set direction (random 360))
 
-  (ask (other turtles)
-       (set patch pcolor (rgb 0 0 0))
-       (set patch dirty? false))
-  
-  (ask (with turtles (member (get id) (range 5)))
-       (set patch pcolor (rgb (+ 64 (random 128))
-                              (+ 64 (random 128))
-                              (+ 64 (random 128))))
+   ;; This is fun... let's vary how far boids
+   ;; can see! Some flock better than others...
+   (set vision 4)
+   
+   (set color (rgb 255 255 0))
+   )
+  )
+
+
+;; I want my boids to go!
+(define (go)
+  (ask boids
+       (flock)
+       (wiggle (* (/ (get wiggly) 100) 10))
+       (move (+ 0.5 (/ (get bursty) 100)))
        )
   )
 
+;; distance-from : agent -> agent -> value
+;; Takes an agent, returns a function
+;; that consumes an agent, and returns the distance
+;; between the two.
+(define distance-from
+  (lambda (them)
+    (define me (current-agent))
+    (define me-x (get me xcor))
+    (define me-y (get me ycor))
+    (define them-x (get them xcor))
+    (define them-y (get them ycor))
+    (+ (abs (- them-x me-x))
+       (abs (- them-y me-y)))))
 
-  #;(ask patches
-         (set dirty? true)
-         (set pcolor (rgb (exact-floor (* 255 (/ (get pxcor) (get world-cols))))
-                          (exact-floor (* 255 (/ (get pycor) (get world-rows))))
-                          0
-                          )))
-#;(set color (rgb (modulo (+ 32 (random 32) (ticker)) 256)
-                       255
-                       (modulo (ticker) 256)))
+(define (distance-from-me a)
+  (distance-from a))
 
-#;(ask patches
-       (set pcolor (rgb (+ 64 (random 64))
-                        (+ 64 (random 64))
-                        (+ 64 (random 64)))))
+;; min-of
+;; takes a comparator of one arg, and
+;; returns the agent that satisfies the pred.
+(define (min-of as compute)
+  (define them (agentset-agents (as)))
+  (define result
+    (sort
+     (for/list ([(id agent) them])
+      (list id (compute agent)))
+     <
+     #:key second))
+  (hash-ref them
+            (first (first result))))
+            
 
+;; This is a thing boids do.
+(define (flock)
+  (define flockmates (other (sniff boids (current-vision))))
+  (when (any? flockmates)
+    (define nearest-neighbor
+      (min-of flockmates distance-from))
+    (cond
+      [(< (distance-from-me nearest-neighbor)
+          minimum-separation)
+       (separate-from nearest-neighbor (random 10))]
+      [else
+       (align flockmates (random 10))
+       ;;(cohere)
+       ])))
+
+;; Could operate on an agent or a set.
+;; Might want to normalize these all on sets,
+;; even if it contains a single agent.
+(define (separate-from neighbor amount)
+  (define my-direction    (get direction))
+  (define their-direction (get neighbor direction))
+  (cond
+    [(< my-direction their-direction)
+     (set direction (- my-direction amount))]
+    [(>= my-direction their-direction)
+     (set direction (+ my-direction amount))]))
+
+(define (average-direction as)
+  (define x-sum 0)
+  (define y-sum 0)
+  (for ([(id agent) (agentset-agents (as))])
+    (define dx (cos (get agent direction)))
+    (define dy (sin (get agent direction)))
+    (set! x-sum (+ dx x-sum))
+    (set! y-sum (+ dy y-sum)))
+  (cond
+    [(and (zero? x-sum) (zero? y-sum))
+     (get direction)]
+    [else (atan x-sum y-sum)]))
+          
+(define (align flockmates amount)
+  (define ad (average-direction flockmates))
+  (define my-direction (get direction))
+  (cond
+    ;; turn towards
+    [(< my-direction ad)
+     (set direction (+ my-direction amount))]
+    [(>= my-direction ad)
+     (set direction (- my-direction amount))]))
+
+
+        
+    
+    
 ;; One of the things fish do is wiggle. I flip a
 ;; coin, and depending on the result, I wiggle a bit
 ;; to the left or to the right.
-(define (wiggle)
+(define (wiggle amount)
   (if (> (random 100) 50)
-      (right (random 10))
-      (left (random 10))))
+      (right amount)
+      (left amount)))
 
 ;; Shimmering means we randomly choose a new color.
-(define (shimmer)
-  (set color (rgb (+ 128 (random 64))
+;; None of my turtles currently shimmer.
+(define (shimmer a)
+  (set a color (rgb (+ 128 (random 64))
                   (+ 128 (random 64))
                   (+ 128 (random 64)))))
 
 
-;; Finally, we run the world.
-(sleep 5)
+;; Finally, I run the world.
 (run-world setup go)

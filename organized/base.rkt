@@ -1,14 +1,24 @@
 #lang racket
-(provide (all-defined-out))
+(require (only-in racket/draw color%))
 
-;; For this to work, I need individual agents.
-;; They can all be the same. They'll keep their fields
-;; in a hash. I debated calling that field "has", so it would be
-;; (agent-has ...) as the accessor...
-(struct agent (id breed fields) #:transparent)
-;; An agentset should be a struct, so I know when I'm working with it.
-(struct agentset (breed plural base-fields agents)
-  #:transparent #:mutable)
+(provide (all-defined-out))
+(require "types.rkt"
+         "patches.rkt")
+
+;(require (for-syntax "patches.rkt"))
+
+;; For getting values from the interface.
+(define interface-values (make-hash))
+(define interface-dirty? false)
+(define (set-interface-dirty! v)
+  (set! interface-dirty? v))
+
+
+(define next-agent-id 0)
+(define (set-next-agent-id! v)
+  (set! next-agent-id v))
+(define (get-next-agent-id)
+  next-agent-id)
 
 ;; Adding agents to an agentset should be easy.
 (define/contract (add-to-agentset! λ:as ag)
@@ -40,34 +50,16 @@
 ;; I'll store globals in a hash.
 (define globals (make-hash))
 
+
 (require (for-syntax syntax/parse))
 
 (define-syntax (get stx)
-  (syntax-parse stx #:datum-literals (global patch)
-    [(_get (~literal global) k)
+  (syntax-parse stx
+    [(_get (~datum global) k)
      #`(hash-ref globals (quote k))]
 
-    [(_get (~literal patch) k)
-     #`(cond
-         [(hash-ref (agent-fields (current-patch)) 'dirty? false)
-          (printf "gdp: ~a (dirty? ~a)~n"
-                  (agent-id (current-patch))
-                  (hash-ref (agent-fields (current-patch)) 'dirty? false))
-          (define p (hash-ref
-                     (agentset-agents (hash-ref agentsets 'dirty-patches))
-                     (agent-id (current-patch))))
-          (hash-ref (agent-fields p) (quote k))]
-         [else
-          (hash-ref (agent-fields (current-patch)) (quote k))])]
-
-    [(_get a:expr k:id)
-     #`(begin
-         (printf "plain get: ~a ~a~n" (agent-id (current-agent)) (quote k))
-         (cond
-           ;; This should work for patches if patches are agents.
-           [(hash-has-key? (agent-fields a) (quote k))
-            (hash-ref (agent-fields a) (quote k))]
-           [else (error 'get "No key found for ~a" (quote k))]))]
+    [(_get (~datum patch) k)
+     #`(get-patch-field (current-patch) (quote k))]
     
     [(_get k:id)
      #`(cond
@@ -81,45 +73,20 @@
 
 (define-syntax (set stx)
   (syntax-parse stx
-    [(_set (~literal global) k:id expr:expr)
+    [(_set (~datum global) k:id expr:expr)
      #`(hash-set! globals (quote k) expr)]
 
-    [(_set (~literal global) k:expr expr:expr)
+    [(_set (~datum global) k:expr expr:expr)
      #`(hash-set! globals k expr)]
 
-    [(_set (~literal patch*) k:id expr:expr)
-     #`(begin
-         ;; (printf "p*: ~a~n" (quote k))
-         (hash-set! (agent-fields (current-patch)) (quote k) expr))]
+    [(_set (~datum patch) k:id expr:expr)
+     #`(set-patch-field! (current-patch) (quote k) expr)]
     
-    [(_set (~literal patch) k:id expr:expr)
-     #`(begin
-         (hash-set! (agent-fields (current-patch)) 'dirty? true)
-         (hash-set! (agent-fields (current-patch)) (quote k) expr)
-         (cond
-           [(get (current-patch) dirty?)
-            (define new-agent (agent (agent-id (current-patch))
-                                     'patch
-                                     (agent-fields (current-patch))))
-            (add-to-agentset! (λ () (hash-ref agentsets 'dirty-patches)) new-agent)]
-           [else
-            ;; FIXME
-            ;; If we were dirty, and are now clean, then the state of the dirty patch
-            ;; should be moved over to the clean set. This way, if (say) some kind of
-            ;; tracking variable was being used, it would carry over. The dirtyness really
-            ;; only has to do with whether we should redraw the patch, not whether
-            ;; it should have its brain wiped.
-            (remove-from-agentset! (λ () (hash-ref agentsets 'dirty-patches))
-                                   (agent-id (current-patch)))]))]    
-            
     [(_set k expr)
      #`(hash-set! (agent-fields (current-agent)) (quote k) expr)]
-
-    [(_set a k:id expr)
-     #`(hash-set! (agent-fields a) (quote k) expr)]
-
-    [(_set a k:expr expr)
-     #`(hash-set! (agent-fields a) k expr)]
+    
+    [(_set a k expr)
+     #`(hash-set! (agent-fields a) (quote k) expr)]    
     ))
 
 
@@ -161,3 +128,41 @@
      (combine (rest l1) l2)]
     [else
      (cons (first l1) (combine (rest l1) l2))]))
+
+
+;; FIXME: There are 14 core colors.
+;; It will take some effort to build the NetLogo color table.
+(define/contract (rgb r g b)
+  (-> byte? byte? byte? rgb-color?)
+  (rgb-color r g b))
+
+;; Everything is in a coordinate system with OpenGL where the number of
+;; columns and rows is scaled to the height and width of the viewport.
+;; Therefore, [79.9, 79.9] will map to [79,79], which is less than 80x80.
+;; Can we ever get a value outside the range? I don't know. This has to do with
+;; whether we map by wrapping or not.
+
+;; This needs to be memoized for performance.
+;; Actually, it is probably not performance critical.
+(define ->patch
+  (case-lambda
+    [(x y)
+     (define edge-y ((get global edge-y) (exact-floor y)))
+     (define edge-x ((get global edge-x) (exact-floor x)))
+     (define world-rows (get global world-rows))
+     (exact-floor (+ (* edge-y world-rows) edge-x))]
+    [(agent)
+     (->patch (hash-ref (agent-fields agent) 'xcor)
+              (hash-ref (agent-fields agent) 'ycor))]
+    ))
+
+
+(define (clear-patch)
+  (clean-patch! (->patch (current-agent))))
+
+
+;; values
+(struct coordinate (x y))
+(define (get-patch-coordinate pid)
+  (coordinate (quotient  pid (get global world-cols))
+              (remainder pid (get global world-rows))))
