@@ -1,14 +1,18 @@
 #lang racket
 
-(require "src/base.rkt"
-         "src/agentsets.rkt"
+(require "src/agentsets.rkt"
          "src/world.rkt"
          "src/interface.rkt"
-         "src/types.rkt")
+         "src/types.rkt"
+         "src/state.rkt"
+         "src/get-set.rkt"
+         )
 
 (provide (all-from-out
-          "src/base.rkt"
-         "src/agentsets.rkt"
-         "src/world.rkt"
-         "src/interface.rkt"
-         "src/types.rkt"))
+          "src/agentsets.rkt"
+          "src/world.rkt"
+          "src/interface.rkt"
+          "src/types.rkt"
+          "src/state.rkt"
+          "src/get-set.rkt"
+          ))

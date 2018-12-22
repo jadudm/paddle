@@ -3,13 +3,31 @@
          racket/contract
          sgl/gl)
 
-(require "base.rkt"
-         "backing.rkt"
+(require "backing.rkt"
          "patches.rkt"
          "types.rkt"
+         "get-set.rkt"
+         "util.rkt"
+         "state.rkt"
          )
 
 (provide (all-defined-out))
+
+
+;; Adding agents to an agentset should be easy.
+(define/contract (add-to-agentset! λ:as ag)
+  (-> procedure? agent? agent?)
+  (define agents (hash-copy (agentset-agents (λ:as))))
+  (hash-set! agents (agent-id ag) ag)
+  (set-agentset-agents! (λ:as) agents)
+  ag)
+
+(define/contract (remove-from-agentset! λ:as ag:id)
+  (-> procedure? number? number?)
+  (define agents (hash-copy (agentset-agents (λ:as))))
+  (hash-remove! agents ag:id)
+  (set-agentset-agents! (λ:as) agents)
+  ag:id)
 
 ;;;;;;;;;;;;;;;;;;;;
 ;; BREEDS
@@ -241,7 +259,7 @@
            bodies ...))]
     
     [(_ap bodies:expr ...)
-     #`(for ([i (range (vector-length the-world))])
+     #`(for ([i (range (vector-length (the-world)))])
          (parameterize ([current-patch i])
            bodies ...))]
 
@@ -254,7 +272,7 @@
     [(_ask (~datum patches) bodies:expr ...)
      ;; Need to visit all of the patches.
      ;; This will be expensive.
-     #`(for ([i (range (vector-length the-world))])
+     #`(for ([i (range (vector-length (the-world)))])
          (parameterize ([current-patch i])
            bodies ...))
      ]

@@ -1,7 +1,6 @@
 #lang racket
 
-(require "types.rkt"
-         "base.rkt")
+(require "types.rkt")
 (provide (all-defined-out))
 
 ;; I want a fast way to know everyone around an agent.

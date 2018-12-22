@@ -1,9 +1,16 @@
 #lang racket/gui
 (require "types.rkt"
-         "base.rkt"
          "agentsets.rkt"
-         "world.rkt")
+         "get-set.rkt"
+         )
 (provide (all-defined-out))
+
+
+;; For getting values from the interface.
+(define interface-values (make-hash))
+(define interface-dirty? false)
+(define (set-interface-dirty! v)
+  (set! interface-dirty? v))
 
 (define (widgets . pieces)
   (define-values (screen-x screen-y)

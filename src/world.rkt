@@ -2,22 +2,18 @@
 (require (except-in racket/gui set)
          sgl/gl)
 
-(require "base.rkt"
-         "backing.rkt"
+(require "backing.rkt"
          "patches.rkt"
          "types.rkt"
-         "agentsets.rkt"
+         "get-set.rkt"
+         "patches.rkt"
+         "interface.rkt"
+         "state.rkt"
          )
-
-(define flag-ch (make-channel))
 
 (provide (all-defined-out))
 
-(define ticker (make-parameter 0))
-(define tick-pause (make-parameter (/ 1 60)))
-(define (tick)
-  (ticker (add1 (ticker)))
-  (sleep (tick-pause)))
+(define flag-ch (make-channel))
 
 (define make-world
   (case-lambda
@@ -51,33 +47,23 @@
       (define r (rgb-color-r pcolor))
       (define g (rgb-color-g pcolor))
       (define b (rgb-color-b pcolor))
-      ;;(printf "draw px ~a py ~a~n" col row)
-      ;;(sleep 0)
         
       (glColor3ub r g b)
-      ;; (glTranslatef col row 0)
       (glVertex3f (+ 0 (* side row)) (+ 0 (* col side)) -0.1)
       (glVertex3f (+ side (* side row)) (+ 0 (* col side)) -0.1)
       (glVertex3f (+ side (* side row)) (+ side (* col side)) -0.1)
       (glVertex3f (+ 0 (* side row)) (+ side (* col side)) -0.1)
-      ;; (glTranslatef (- col) (- row) 0)
       (glEnd)
       )
     ))
-(define (draw-agents)
-  
+
+(define (draw-agents)  
   (for ([(plural as) agentsets])
-    ;;(glClear GL_DEPTH_BUFFER_BIT)
-    ;; Draw the agents second
     (when (not (member plural '(patches dirty-patches)))
-      ;; (printf "Drawing agents.~n")
       (for ([(id critter) (agentset-agents as)])
         (parameterize ([current-agent critter])
           ((get draw))
           )))
-
-    
-    
     ))
 
 (define (setup-gl-draw)
@@ -96,38 +82,18 @@
   (glMatrixMode GL_MODELVIEW)
   (glLoadIdentity))
 
-(define (draw-opengl)
+(define (world-draw)
   (setup-gl-draw)
   (draw-patches)
   (draw-agents)
   ;; (draw-grid)
   )
 
+(draw-opengl world-draw)
 
-(define (resize w h)
-  (glViewport 0 0 w h))
 
-(define paddle-canvas%
-  (class* canvas% ()
-    (inherit with-gl-context swap-gl-buffers)
-    (define/override (on-paint)
-      (with-gl-context (λ ()
-                         (draw-opengl)
-                         (swap-gl-buffers)
-                         )))
-    (define/override (on-size width height)
-      (with-gl-context (λ() (resize width height) (on-paint))))
-    (super-instantiate () (style '(gl)))))
 
-(define paddle-frame%
-  (class frame%
-    (define/augment (on-close)
-      (printf "The sky is falling!~n")
-      (send this show false)
-      ((stop)))
-    (super-new)))
 
-(define stop (make-parameter false))
 
 (define threads-to-kill '())
 (define (add-thread-to-kill! t)
@@ -135,7 +101,7 @@
 
 (define (run-world setup go
                    #:interface [interface false])
-
+  
   (printf "Building frame.~n")
   (define-values (screen-x screen-y)
     (get-display-size))
@@ -146,6 +112,7 @@
                    [x (- screen-x (get global frame-width) 50)]
                    [y 50]
                    ))
+  
   (printf "Building canvas.~n")
   (define gl  (new paddle-canvas%
                    [parent win]))
@@ -165,9 +132,7 @@
   
   (define draw-thread
     (thread (λ ()
-              ;; (sleep 1)
               (channel-get flag-ch)
-              
               (send win show #t)
               (send gl on-paint)
               (tick)
