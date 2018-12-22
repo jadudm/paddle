@@ -1,6 +1,3 @@
-;;; Copyright 2018 Matt Jadud <matt@jadud.com>. All rights reserved.
-;;; This work is licensed under the terms of the MIT license.
-
 #lang racket
 (provide (all-defined-out))
 (require "types.rkt")
