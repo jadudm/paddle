@@ -6,6 +6,7 @@
          "src/types.rkt"
          "src/state.rkt"
          "src/get-set.rkt"
+         "src/util.rkt"
          )
 
 (provide (all-from-out
@@ -15,4 +16,5 @@
           "src/types.rkt"
           "src/state.rkt"
           "src/get-set.rkt"
+          "src/util.rkt"
           ))

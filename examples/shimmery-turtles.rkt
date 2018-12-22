@@ -34,12 +34,12 @@
   (ask turtles
    (set xcor (random (get global world-cols)))
    (set ycor (random (get global world-rows)))
-   (set color (rgb 255 0 0))
+   (set color (rgb-color 255 0 0))
    )
 
   ;; Only a special few of my turtles are yellow.
   (ask (with turtles (zero? (get id)))
-       (set color (rgb 255 255 0))
+       (set color (rgb-color 255 255 0))
        )
 
   )
@@ -62,7 +62,7 @@
   ;; Finally,  I ask the special turtles to use the slider values
   ;; to set their patches to a pretty color.
   (ask (with turtles (zero? (get id)))
-       (set patch pcolor (rgb (random (get r)) 
+       (set patch pcolor (rgb-color (random (get r)) 
                               (random (get g))
                               (random (get b))
                               ))
@@ -85,9 +85,9 @@
 ;; Shimmering means we randomly choose a new color.
 ;; None of my turtles currently shimmer.
 (define (shimmer a)
-  (set a color (rgb (+ 128 (random 64))
-                  (+ 128 (random 64))
-                  (+ 128 (random 64)))))
+  (set a color (rgb-color (+ 128 (random 64))
+                          (+ 128 (random 64))
+                          (+ 128 (random 64)))))
 
 
 ;; Finally, I run the world.
