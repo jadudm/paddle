@@ -1,13 +1,15 @@
 #lang racket
 
-(provide ask create)
+(provide ask create move)
 
 (require (for-syntax syntax/parse))
 (require "agentsets.rkt"
          "agents.rkt"
          "colors.rkt"
          "quadtree.rkt"
-         "state.rkt")
+         "state.rkt"
+         "get-set.rkt"
+         "util.rkt")
 
 ;; 'ask' is a query language. It operates over agentsets.
 ;;
@@ -34,6 +36,7 @@
      #`(begin
          ;; Set the quadtree as dirty at the top of every ask.
          (quadtree-is-dirty!)
+         (current-agentset (as))
          (for ([(id agent) (agentset-agents (as))])
            ;; Set the current agent.
            (current-agent agent)
@@ -78,3 +81,30 @@
   (set-global! 'last-id (+ (get-global 'last-id) n))
   (set-agentset-agents! (as) h)
   )
+
+
+(define pi-conv (/ pi 180))
+
+(define (offset x y direction magnitude)
+  (define dir (* (+ direction 90) pi-conv))
+  (define dy (* magnitude (sin dir)))
+  (define dx (* magnitude (cos dir)))
+  (values (+ x dx) (+ y dy)))
+
+;; Agent actions.
+(define move
+  (case-lambda
+    [(magnitude)
+     (move (current-agent) magnitude)]
+    [(ag magnitude)
+     (define setter (agentset-agent-setter (current-agentset)))
+     (define direction (get direction))
+     (define-values (new-x new-y)
+       (offset (get x)
+               (get y)
+               direction magnitude))
+     ((agentset-agent-setter (current-agentset)) ag 'x (wrap new-x (get-global 'world-columns)))
+     ((agentset-agent-setter (current-agentset)) ag 'y (wrap new-y (get-global 'world-rows)))
+     ]))
+  
+

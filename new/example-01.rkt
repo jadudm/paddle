@@ -20,6 +20,7 @@
   (ask turtles
        (set turtle eyes (random 1000000))
        (set turtle eyebrows (list-ref colors (random (length colors))))
+       (move 1)
        )
 
   (ask turtles

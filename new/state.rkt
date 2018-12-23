@@ -3,6 +3,7 @@
 (provide (contract-out
           [agentsets                      hash?]
           [current-agent                  parameter?]
+          [current-agentset               parameter?]
           [get-global                     (-> symbol? any)]
           [set-global!                    (-> symbol? any/c any)]
           [is-quadtree-dirty?             boolean?]
@@ -23,6 +24,7 @@
 ;; a parallel implementation at this time.)
 ;; FIXME: Perhaps this syntax can be injected by ask?
 (define current-agent (make-parameter false))
+(define current-agentset (make-parameter false))
 
 ;; Globals
 (define globals (make-hash))

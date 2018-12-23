@@ -1,7 +1,8 @@
 #lang racket
 
 (provide (all-defined-out))
-(require "state.rkt")
+(require "agents.rkt"
+         "state.rkt")
 
 (require (for-syntax syntax/parse racket/syntax))
 (define dirty-bits (make-hash))
@@ -21,6 +22,10 @@
     [(_get breed a k)
      (with-syntax ([getter (format-id stx "~a-get" #'breed)])
        #`(getter a k))]
+
+    [(_get k)
+     #`(agent-get (current-agent) (index-of agent-fields (quote k)))]
+
     ))
 
 (define-syntax (set stx)
@@ -41,6 +46,8 @@
     [(_set breed a k expr)
      (with-syntax ([setter (format-id stx "~a-set!" #'breed)])
        #`(setter a k expr))]
+
+    
     ))
 
 
