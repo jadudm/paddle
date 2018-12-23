@@ -13,15 +13,19 @@
 (create-breed turtle turtles #:have eyes eyebrows)
 (create turtles 2)
 
+(define colors '(a b c d e))
+
 (define (setup) 'pass)
 (define (go)
   (ask turtles
        (set turtle eyes (random 1000000))
+       (set turtle eyebrows (list-ref colors (random (length colors))))
        )
 
   (ask turtles
        (sleep 1)
        (printf "~a ~a~n" (get turtle id) (get turtle eyes))
+       (printf "~a ~a~n" (get turtle id) (get turtle eyebrows))
        ))
 
 (run-world setup go)

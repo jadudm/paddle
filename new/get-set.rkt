@@ -19,12 +19,8 @@
        #`(getter (current-agent) k))]
     
     [(_get breed a k)
-     #`(cond
-         ;; This should work for patches if patches are agents.
-         [(and (agent? a)
-               (hash-has-key? (agent-fields a) (quote k)))
-          (hash-ref (agent-fields a) (quote k))]
-         [else (error 'get "No key found for ~a" (quote k))])]
+     (with-syntax ([getter (format-id stx "~a-get" #'breed)])
+       #`(getter a k))]
     ))
 
 (define-syntax (set stx)
@@ -40,10 +36,11 @@
     
     [(_set breed k expr)
      (with-syntax ([setter (format-id stx "~a-set!" #'breed)])
-       #`(setter k expr))]
+       #`(setter (current-agent) k expr))]
     
-    [(_set a k expr)
-     #`(hash-set! (agent-fields a) (quote k) expr)]    
+    [(_set breed a k expr)
+     (with-syntax ([setter (format-id stx "~a-set!" #'breed)])
+       #`(setter a k expr))]
     ))
 
 
