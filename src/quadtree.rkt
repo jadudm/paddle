@@ -1,4 +1,5 @@
 #lang racket
+
 (require "structs.rkt")
 (require racket/hash)
 
@@ -191,17 +192,13 @@
     ))
 
 
-(define ra (random-agents 40000))
-(define t (time (make-quadtree DIM DIM ra)))
-(quadtree-depth t)
-(hash-count (quad-agents t))
+(module+ test
+  (require rackunit)
+  (define DIM (make-parameter 400))
+  (define ras (make-parameter (random-agents 1000)))
+  (define quadtree  (make-parameter (make-quadtree (DIM) (DIM) (ras))))
+  (check > (quadtree-depth (quadtree)) 4)
+  (check < (quadtree-depth (quadtree)) 8)
+  (check-equal? (hash-count (quad-agents (quadtree))) (hash-count (ras))))
 
-(define px (make-parameter 0))
-(define py (make-parameter 0))
-(define radius (make-parameter (* DIM 2)))
 
-;; (neighbors qt dim x y radius)
-(hash-count (neighbors t DIM (px) (py) (radius)))
-
-;; With a radius that covers all agents, I... find less than all agents. I lost 500 of 20,000.
-;; FIXED. I was dropping some on insert, because of exclusion on > vs. >=
