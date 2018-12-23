@@ -1,8 +1,8 @@
 #lang racket
 
 (provide (all-defined-out))
-(require "agents.rkt"
-         "state.rkt")
+(require  "agentsets.rkt"
+          "state.rkt")
 
 (require (for-syntax syntax/parse racket/syntax))
 (define dirty-bits (make-hash))
@@ -15,17 +15,10 @@
     #;[(_get (~datum patch) k)
      #`(get-patch-field (current-patch) (quote k))]
     
-    [(_get breed k)
-     (with-syntax ([getter (format-id stx "~a-get" #'breed)])
-       #`(getter (current-agent) k))]
-    
-    [(_get breed a k)
-     (with-syntax ([getter (format-id stx "~a-get" #'breed)])
-       #`(getter a k))]
-
+    [(_get a k)
+     #`(vector-ref a (index-of (agentset-fields (current-agentset)) (quote k)))]
     [(_get k)
-     #`(agent-get (current-agent) (index-of agent-fields (quote k)))]
-
+     #`(vector-ref (current-agent) (index-of (agentset-fields (current-agentset)) (quote k)))]
     ))
 
 (define-syntax (set stx)
@@ -39,13 +32,11 @@
     #;[(_set (~datum patch) k:id expr:expr)
      #`(set-patch-field! (current-patch) (quote k) expr)]
     
-    [(_set breed k expr)
-     (with-syntax ([setter (format-id stx "~a-set!" #'breed)])
-       #`(setter (current-agent) k expr))]
+    [(_set k expr)
+     #`(vector-set! (current-agent) (index-of (agentset-fields (current-agentset)) (quote k)) expr)]
     
-    [(_set breed a k expr)
-     (with-syntax ([setter (format-id stx "~a-set!" #'breed)])
-       #`(setter a k expr))]
+    [(_set a k expr)
+      #`(vector-set! a (index-of (agentset-fields (current-agentset)) (quote k)) expr)]
 
     
     ))

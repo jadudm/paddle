@@ -8,7 +8,7 @@
   ))
 (require "state.rkt")
 
-(struct agentset (breed plural agents agent-maker agent-pred? agent-setter agent-getter agent-special-fields) #:transparent #:mutable)
+(struct agentset (breed plural agents fields special-fields) #:transparent #:mutable)
 
 (define (get-agentset sym)
   (hash-ref (agentsets) sym false))

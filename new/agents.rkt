@@ -1,24 +1,42 @@
 #lang racket
 
-(provide struct:agent
-         make-agent
-         agent?
-         agent-get
-         agent-set!
-         agent-id agent-pid
-         agent-x agent-y
-         agent-color agent-direction
-         prop:draw draw-ref draw?
-         prop:field-names field-names-ref
-         (contract-out
-          [agent-fields  (listof symbol?)]
+(provide (contract-out
+          [make-agent            (-> number? number? number? number?
+                                     color? number?
+                                     symbol? symbol?
+                                     (-> vector? any)
+                                     vector?)]
+          [agent-fields          (listof symbol?)]
+          [agent-control-fields  (listof symbol?)]
+          [default-draw-function (-> vector? any)]
+          [agent-x               (-> vector? number?)]
+          [agent-y               (-> vector? number?)]
+          [agent-id              (-> vector? number?)]
           ))
 
 (require sgl/gl)
 (require "colors.rkt")
 
 (define agent-fields '(id pid x y color direction))
+(define agent-control-fields '(singular plural draw))
 
+(define (make-agent id pid x y color direction singular plural default-draw-function)
+  (vector
+   ;0  1  2 3
+   id pid x y
+   ;; 4     5
+   color direction
+   ;; 6     7
+   singular plural
+   ;; 8
+   default-draw-function))
+
+(define (agent-id a)          (vector-ref a 0))
+(define (agent-pid a)         (vector-ref a 1))
+(define (agent-x a)           (vector-ref a 2))
+(define (agent-y a)           (vector-ref a 3))
+(define (agent-color a)       (vector-ref a 4))
+(define (agent-direction a)   (vector-ref a 5))
 
 (define (default-draw-function agent)
   (let ()
@@ -47,17 +65,19 @@
     (glVertex3f (+ turtle-x (/ 1 2)) (- turtle-y (/ 1 2)) 0.1)
     (glEnd)
 
-    (glBegin GL_QUADS)
-    (glColor3ub 255 255 255)
-    (glVertex3f (- turtle-x .1) (- turtle-y .1) 0.2)
-    (glVertex3f (- turtle-x .1) (+ turtle-y .1) 0.2)
-    (glVertex3f (+ turtle-x .1) (+ turtle-y .1) 0.2)
-    (glVertex3f (+ turtle-x .1) (- turtle-y .1) 0.2)
-    (glColor3ub 0 0 0)
-    (glEnd)
+    #;(begin
+        (glBegin GL_QUADS)
+        (glColor3ub 255 255 255)
+        (glVertex3f (- turtle-x .1) (- turtle-y .1) 0.2)
+        (glVertex3f (- turtle-x .1) (+ turtle-y .1) 0.2)
+        (glVertex3f (+ turtle-x .1) (+ turtle-y .1) 0.2)
+        (glVertex3f (+ turtle-x .1) (- turtle-y .1) 0.2)
+        (glColor3ub 0 0 0)
+        (glEnd))
     (glPopMatrix)
     ))
 
+#|
 ;; https://docs.racket-lang.org/reference/structprops.html
 (define-values (prop:draw draw? draw-ref) (make-struct-type-property 'draw))
 (define-values (prop:field-names field-names field-names-ref) (make-struct-type-property 'field-names))
@@ -74,12 +94,4 @@
                           (cons prop:field-names agent-fields)
                           )
                     false))
-
-
-(define (agent-id a)          (agent-get a 0))
-(define (agent-pid a)         (agent-get a 1))
-(define (agent-x a)           (agent-get a 2))
-(define (agent-y a)           (agent-get a 3))
-(define (agent-color a)       (agent-get a 4))
-(define (agent-direction a)   (agent-get a 5))
-
+|#

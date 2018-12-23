@@ -193,9 +193,11 @@
       (hash-set!
        h i
        (make-agent i i
-                   (random DIM) (random DIM)
+                   (random (DIM)) (random (DIM))
                    (color 0 0 0)
-                   (random 360))))
+                   (random 360)
+                   'singular 'plural (λ (a) 'draw-function))
+                   ))
     h)
   (define DIM (make-parameter 400))
   (define ras (make-parameter (random-agents 1000)))

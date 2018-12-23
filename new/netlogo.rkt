@@ -1,8 +1,8 @@
 #lang racket
 
-(provide ask create move)
+(provide ask create sniff move increment! where)
 
-(require (for-syntax syntax/parse))
+(require (for-syntax syntax/parse) racket/hash)
 (require "agentsets.rkt"
          "agents.rkt"
          "colors.rkt"
@@ -37,6 +37,7 @@
          ;; Set the quadtree as dirty at the top of every ask.
          (quadtree-is-dirty!)
          (current-agentset (as))
+         ;;(printf "Asking ~a agents.~n" (hash-count (agentset-agents (as))))
          (for ([(id agent) (agentset-agents (as))])
            ;; Set the current agent.
            (current-agent agent)
@@ -49,37 +50,66 @@
 ;; (make-quadtree width height agents)
 ;; (neighbors qt dim x y radius)
 (define qt (make-parameter false))
-(define (sniff as radius)
-  (when (or is-quadtree-dirty? always-generate-quadtree?)
-    (qt (make-quadtree (get-global 'world-columns)
-                       (get-global 'world-rows)
-                       (agentset-agents (as))))
-    (quadtree-is-clean!))
-  
-  (define NN (nearest-neighbors (qt) (get-global 'world-columns)
-                                (agent-x (current-agent)) (agent-y (current-agent))
-                                radius))
-  ;; Return the nearest neighbors as a set.
-  (agentset NN))
+
+(define sniff
+  (case-lambda
+    [(as radius)
+     (define qt (make-quadtree (get-global 'world-columns)
+                               (get-global 'world-rows)
+                               (agentset-agents (as))))
+     
+     ;;(printf "Recalculating NN~n")
+     (define NN (nearest-neighbors qt (get-global 'world-columns)
+                                   (agent-x (current-agent)) (agent-y (current-agent))
+                                   radius))
+     (for ([(id agent) NN])
+       (when (= id (agent-id (current-agent)))
+         (hash-remove! NN id)))
+     
+     ;; Return the nearest neighbors as a set.
+     (define new-as (struct-copy agentset (as)))
+     (set-agentset-agents! new-as NN)
+ 
+     (make-parameter new-as)]
+    [(radius)
+     (sniff current-agentset radius)]))
 
 
 (define (create as n)
   (define h (make-hash))
+  ;; (printf "~a -> ~a~n" (get-global 'last-id) (+ (get-global 'last-id) n))
+  
   (for ([id (range (get-global 'last-id) (+ (get-global 'last-id) n))])
-    (printf "creating agent ~a ~a~n" (agentset-breed (as)) id)
+    ;; (printf "creating agent ~a ~a~n" (agentset-breed (as)) id)
     
     (hash-set! h id
-               ;; (id pid breed x y color direction))
-               (apply (agentset-agent-maker (as))
+               ;; (id pid x y color direction singular plural ...))
+               (apply vector
                       (append (list id 0
                                     (/ (get-global 'world-columns) 2)
                                     (/ (get-global 'world-rows) 2)
                                     (get-random-color)
-                                    (random 360))
-                              (map (λ (field) 0) (agentset-agent-special-fields (as)))))
+                                    (random 360)
+                                    (agentset-breed (as))
+                                    (agentset-plural (as))
+                                    default-draw-function
+                                    )
+                              (map (λ (field) 0) (agentset-special-fields (as)))))
                ))
   (set-global! 'last-id (+ (get-global 'last-id) n))
-  (set-agentset-agents! (as) h)
+
+  ;; This is all some silly juggling to make sure that the turtles we just created
+  ;; come back in their own agentset. There is almost certainly a cheaper way, but
+  ;; I don't want sharing with the original set.
+  (define new-as (struct-copy agentset (as)))
+  (set-agentset-agents! new-as h)
+  (define combined (make-hash))
+  (for ([(k v) h])
+    (hash-set! combined k v))
+  (for ([(k v) (agentset-agents (as))])
+    (hash-set! combined k v))
+  (set-agentset-agents! (as) combined)
+  (make-parameter new-as)
   )
 
 
@@ -97,14 +127,28 @@
     [(magnitude)
      (move (current-agent) magnitude)]
     [(ag magnitude)
-     (define setter (agentset-agent-setter (current-agentset)))
      (define direction (get direction))
      (define-values (new-x new-y)
        (offset (get x)
                (get y)
                direction magnitude))
-     ((agentset-agent-setter (current-agentset)) ag 'x (wrap new-x (get-global 'world-columns)))
-     ((agentset-agent-setter (current-agentset)) ag 'y (wrap new-y (get-global 'world-rows)))
+     (vector-set! ag (index-of agent-fields 'x) (wrap new-x (get-global 'world-columns)))
+     (vector-set! ag (index-of agent-fields 'y) (wrap new-y (get-global 'world-rows)))
      ]))
   
+
+(define-syntax-rule (increment! id)
+  (set! id (add1 id)))
+
+(define-syntax-rule (where as expr)
+  (let ([new-h (make-hash)]
+        [new-as (struct-copy agentset (as))])
+    (current-agentset (as))
+    (for ([(id agent) (agentset-agents (as))])
+      (parameterize ([current-agent agent])
+        (when expr
+          (hash-set! new-h id agent))))
+    (set-agentset-agents! new-as new-h)
+    ;; (current-agentset new-as)
+    (make-parameter new-as))) 
 
