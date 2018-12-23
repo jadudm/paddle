@@ -16,16 +16,14 @@
 ;; Using cols/rows as width/height, to be
 ;; in keeping with OpenGL implementation.
 (define (make-quadtree width height agents)
-  ;;(printf "m-q: ~a ~a ~a~n" width height agents)
   (split (quad agents
                0 0 width height
                (empty-quad) (empty-quad) (empty-quad) (empty-quad))))
 
 (define (make-child-quadtree x y width height agents)
-  ;;(printf "m-c-q: ~a ~a ~a ~a~n" x y width height)
   (quad agents
-               x y width height
-               (empty-quad) (empty-quad) (empty-quad) (empty-quad)))
+        x y width height
+        (empty-quad) (empty-quad) (empty-quad) (empty-quad)))
   
 (define (count-agents qt)
   (hash-count (quad-agents qt)))
@@ -52,9 +50,9 @@
        (make-child-quadtree
         (+ x sub-width) (+ y sub-height)
         sub-width sub-height
-       (insert (+ x sub-width) (+ y sub-height)
-               sub-width sub-height
-               (quad-agents qt))))
+        (insert (+ x sub-width) (+ y sub-height)
+                sub-width sub-height
+                (quad-agents qt))))
      
      (define child-se
        (make-child-quadtree
@@ -126,7 +124,7 @@
   (define h (make-hash))
   (for ([(id agent) ah])
     #;(printf "- [~a, ~a] -> [~a, ~a] d ~a < r ~a~n"
-          x y (agent-x agent) (agent-y agent) (distance x y agent) r)
+              x y (agent-x agent) (agent-y agent) (distance x y agent) r)
     (when (<= (distance x y agent) r)
       (hash-set! h id agent)))
   h)
