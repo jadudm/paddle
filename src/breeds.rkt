@@ -13,18 +13,19 @@
     
     [(_ s:id p:id (~optional (~seq #:have user-fields ...)
                              #:defaults ([(user-fields 1)  '()])))
-     (with-syntax ([base  (format-id stx "~a" #'s)]
+     (with-syntax ([base   (format-id stx "~a" #'s)]
                    [_make- (format-id stx "_make-~a" #'s)]
-                   [make- (format-id stx "make-~a" #'s)]
-                   [pred? (format-id stx "~a?" #'s)]
-                   [set   (format-id stx "~a-set!" #'s)]
-                   [get   (format-id stx "~a-get" #'s)]
+                   [make-  (format-id stx "make-~a" #'s)]
+                   [pred?  (format-id stx "~a?" #'s)]
+                   [set    (format-id stx "~a-set!" #'s)]
+                   [get    (format-id stx "~a-get" #'s)]
                    [_stx   stx])
        
        #`(begin
-           (define special-fields (append (quote (user-fields ...)) '(singular plural) ))
+           (define special-fields (append (quote (user-fields ...)) '(singular plural)))
            ;; (printf "~a sf: ~a (length ~a)~n" (quote s) special-fields (length special-fields))
-           
+
+           ;; https://docs.racket-lang.org/reference/creatingmorestructs.html
            (define-values (base _make- pred? _get _set)
              (make-struct-type (quote s) struct:agent
                                (length special-fields) 0
@@ -34,7 +35,6 @@
            (define make-
              (lambda args
                (define num-values (- (+ 6 (length special-fields)) 2))
-               ;; (printf "args: ~a nv: ~a args ~a sf ~a~n" (length args) num-values args special-fields)
                (cond
                  [(= (length args) num-values)
                   (define apply-args
@@ -66,7 +66,7 @@
              (syntax-parse stx2
                [(_ f)
                 #`(begin
-                    (printf "ca: ~a~n" (current-agent))
+                    ;; (printf "ca: ~a~n" (current-agent))
                     (get (current-agent) f))]
                
                [(_ ag f)

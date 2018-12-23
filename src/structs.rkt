@@ -11,6 +11,7 @@
  agent?
  agent-get
  agent-set!
+ agent-x agent-y
  (contract-out
   [agent-fields  (listof symbol?)]
   ))
@@ -24,4 +25,7 @@
                     6 0
                     false '() false))
 
-;; FIXME I think patches need to be different.
+(define (agent-x a)
+  (agent-get a 2))
+(define (agent-y a)
+  (agent-get a 3))
