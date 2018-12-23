@@ -37,20 +37,19 @@
          ;; Set the quadtree as dirty at the top of every ask.
          (quadtree-is-dirty!)
          (current-agentset (as))
-         ;;(printf "Asking ~a agents.~n" (hash-count (agentset-agents (as))))
-         (for ([(id agent) (agentset-agents (as))])
-           ;; Set the current agent.
-           (current-agent agent)
+         (let ([agent-hash (agentset-agents (as))])
+           ;;(printf "Asking ~a agents.~n" (hash-count (agentset-agents (as))))
+           (for ([id (hash-keys agent-hash)])
+             ;; Set the current agent.
+           (current-agent (hash-ref agent-hash id))
            ;; Run the bodies
-           bodies ...)
+           bodies ...))
          )]
     ))
 
 ;; sniff searches the nearest neighbors to see who is in-radius.
 ;; (make-quadtree width height agents)
 ;; (neighbors qt dim x y radius)
-(define qt (make-parameter false))
-
 (define sniff
   (case-lambda
     [(as radius)
@@ -88,7 +87,7 @@
                       (append (list id 0
                                     (/ (get-global 'world-columns) 2)
                                     (/ (get-global 'world-rows) 2)
-                                    (get-random-color)
+                                    (color 255 255 255)
                                     (random 360)
                                     (agentset-breed (as))
                                     (agentset-plural (as))
@@ -101,14 +100,16 @@
   ;; This is all some silly juggling to make sure that the turtles we just created
   ;; come back in their own agentset. There is almost certainly a cheaper way, but
   ;; I don't want sharing with the original set.
-  (define new-as (struct-copy agentset (as)))
-  (set-agentset-agents! new-as h)
-  (define combined (make-hash))
+  ;;(breed plural agents fields special-fields)
+  (define ta (as))
+  (define new-as (agentset (agentset-breed ta)
+                           (agentset-plural ta)
+                           h
+                           (agentset-fields ta)
+                           (agentset-special-fields ta)))
+  (define the-h (agentset-agents ta))
   (for ([(k v) h])
-    (hash-set! combined k v))
-  (for ([(k v) (agentset-agents (as))])
-    (hash-set! combined k v))
-  (set-agentset-agents! (as) combined)
+    (hash-set! the-h k v))
   (make-parameter new-as)
   )
 

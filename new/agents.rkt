@@ -1,6 +1,7 @@
 #lang racket
 
-(provide (contract-out
+(provide (struct-out apair)
+         (contract-out
           [make-agent            (-> number? number? number? number?
                                      color? number?
                                      symbol? symbol?
@@ -16,6 +17,8 @@
 
 (require sgl/gl)
 (require "colors.rkt")
+
+(struct apair (id plural))
 
 (define agent-fields '(id pid x y color direction))
 (define agent-control-fields '(singular plural draw))

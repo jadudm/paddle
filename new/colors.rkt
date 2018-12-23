@@ -35,9 +35,12 @@
 
     [(list (? string? s))
      (define c   (send the-color-database find-color s))
-     (color (send c red) (send c green) (send c blue))]
-    
-    ))
+     (cond
+       [c
+        (color (send c red) (send c green) (send c blue))]
+       [else
+        (error 'get-color "'~a' is not a color." s)]
+    )]))
 
 (define (get-random-color)
   (get-color (random num-colors)))
