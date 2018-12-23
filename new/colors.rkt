@@ -7,14 +7,14 @@
           [color-names       (listof string?)]
           [num-colors        number?]
           [get-random-color  (-> color?)]
-          [struct color      ((r byte?)
-                              (g byte?)
-                              (b byte?))]
+          [struct color      ((red byte?)
+                              (green byte?)
+                              (blue byte?))]
           ))
 
 ;; FIXME
 ;; Should I only have rgb as a type?
-(struct color (r g b) #:transparent)
+(struct color (red green blue) #:transparent)
 
 ;; Straight from the Racket color database.
 ;; https://docs.racket-lang.org/draw/color-database___.html

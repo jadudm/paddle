@@ -1,7 +1,11 @@
 #lang racket
 
-(require "agents.rkt")
+(provide make-quadtree
+         (rename-out [neighbors nearest-neighbors]))
+
 (require racket/hash)
+(require "agents.rkt")
+
 
 (struct empty-quad ())
 (struct quad (agents

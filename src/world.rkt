@@ -103,19 +103,7 @@
                    #:interface [interface false])
   
   (printf "Building frame.~n")
-  (define-values (screen-x screen-y)
-    (get-display-size))
-  (define win (new paddle-frame%
-                   [label "paddle gl"]
-                   [min-width  (get global frame-width)]
-                   [min-height (get global frame-height)]
-                   [x (- screen-x (get global frame-width) 50)]
-                   [y 50]
-                   ))
   
-  (printf "Building canvas.~n")
-  (define gl  (new paddle-canvas%
-                   [parent win]))
 
   (thread (λ ()
             (printf "Running setup.~n")
