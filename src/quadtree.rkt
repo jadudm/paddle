@@ -23,9 +23,9 @@
 (define (make-child-quadtree x y width height agents)
   ;;(printf "m-c-q: ~a ~a ~a ~a~n" x y width height)
   (quad agents
-        x y width height
-        (empty-quad) (empty-quad) (empty-quad) (empty-quad)))
-
+               x y width height
+               (empty-quad) (empty-quad) (empty-quad) (empty-quad)))
+  
 (define (count-agents qt)
   (hash-count (quad-agents qt)))
 
@@ -84,9 +84,9 @@
 (define (insert x y w h agents)
   (define in-bounds (make-hash))
   (for ([(id a) agents])
-    (when (and (> (agent-x a) x)
+    (when (and (>= (agent-x a) x)
                (< (agent-x a) (+ x w))
-               (> (agent-y a) y)
+               (>= (agent-y a) y)
                (< (agent-y a) (+ y h)))
       (hash-set! in-bounds id a)))
   in-bounds)
@@ -204,3 +204,4 @@
 (hash-count (neighbors t DIM (px) (py) (radius)))
 
 ;; With a radius that covers all agents, I... find less than all agents. I lost 500 of 20,000.
+;; FIXED. I was dropping some on insert, because of exclusion on > vs. >=
