@@ -30,21 +30,27 @@
 ;;
 ;; fun : agentset -> agentset
 
+;; The agentset is now a parameter containing a list of apairs (id plural)
 (define-syntax (ask stx)
   (syntax-parse stx
-    [(ask as:expr bodies:expr ...)
+    [(ask as:id bodies:expr ...)
      #`(begin
-         ;; Set the quadtree as dirty at the top of every ask.
-         (quadtree-is-dirty!)
-         (current-agentset (as))
-         (let ([agent-hash (agentset-agents (as))])
-           ;;(printf "Asking ~a agents.~n" (hash-count (agentset-agents (as))))
-           (for ([id (hash-keys agent-hash)])
-             ;; Set the current agent.
-           (current-agent (hash-ref agent-hash id))
+         (define the-as (if (agentset? as) (agentset-agents as) (agentset-agents (hash-ref agentsets (as)))))
+         (for ([id (hash-keys the-as)])
+           ;; Set the current agent.
+           (current-agent (hash-ref the-as id))
            ;; Run the bodies
            bodies ...))
-         )]
+     ]
+    [(ask as:expr bodies:expr ...)
+     #`(begin
+         (define the-as (agentset-agents as))
+         (for ([id (hash-keys the-as)])
+           ;; Set the current agent.
+           (current-agent (hash-ref the-as id))
+           ;; Run the bodies
+           bodies ...))
+     ]
     ))
 
 ;; sniff searches the nearest neighbors to see who is in-radius.
@@ -74,45 +80,40 @@
      (sniff current-agentset radius)]))
 
 
-(define (create as n)
-  (define h (make-hash))
+(define (create plural-param n)
   ;; (printf "~a -> ~a~n" (get-global 'last-id) (+ (get-global 'last-id) n))
+  (define as (hash-ref agentsets (plural-param)))
+  (define this-set (make-hash))
+  (define the-agents (agentset-agents as))
   
   (for ([id (range (get-global 'last-id) (+ (get-global 'last-id) n))])
-    ;; (printf "creating agent ~a ~a~n" (agentset-breed (as)) id)
+    ;;(printf "creating agent ~a ~a~n" (agentset-breed as) id)
+    (define new-agent
+      (apply vector
+             (append (list id 0
+                           (/ (get-global 'world-columns) 2)
+                           (/ (get-global 'world-rows) 2)
+                           (color 255 255 255)
+                           (random 360)
+                           (agentset-breed as)
+                           (agentset-plural as)
+                           default-draw-function
+                           (append agent-fields agent-control-fields (agentset-special-fields as))
+                           )
+                     (map (λ (field) 0) (agentset-special-fields as)))))
     
-    (hash-set! h id
-               ;; (id pid x y color direction singular plural ...))
-               (apply vector
-                      (append (list id 0
-                                    (/ (get-global 'world-columns) 2)
-                                    (/ (get-global 'world-rows) 2)
-                                    (color 255 255 255)
-                                    (random 360)
-                                    (agentset-breed (as))
-                                    (agentset-plural (as))
-                                    default-draw-function
-                                    )
-                              (map (λ (field) 0) (agentset-special-fields (as)))))
-               ))
+    (hash-set! this-set id new-agent)
+    (hash-set! the-agents id new-agent))
+  
   (set-global! 'last-id (+ (get-global 'last-id) n))
-
-  ;; This is all some silly juggling to make sure that the turtles we just created
-  ;; come back in their own agentset. There is almost certainly a cheaper way, but
-  ;; I don't want sharing with the original set.
-  ;;(breed plural agents fields special-fields)
-  (define ta (as))
-  (define new-as (agentset (agentset-breed ta)
-                           (agentset-plural ta)
-                           h
-                           (agentset-fields ta)
-                           (agentset-special-fields ta)))
-  (define the-h (agentset-agents ta))
-  (for ([(k v) h])
-    (hash-set! the-h k v))
-  (make-parameter new-as)
+  (set-agentset-agents! as the-agents)
+  
+  (agentset (agentset-breed as)
+            (agentset-plural as)
+            this-set
+            (agentset-fields as)
+            (agentset-special-fields as))
   )
-
 
 (define pi-conv (/ pi 180))
 
@@ -143,13 +144,17 @@
 
 (define-syntax-rule (where as expr)
   (let ([new-h (make-hash)]
-        [new-as (struct-copy agentset (as))])
-    (current-agentset (as))
-    (for ([(id agent) (agentset-agents (as))])
-      (parameterize ([current-agent agent])
+        [the-as (agentset-agents as)])
+    
+    (for ([id (hash-keys (agentset-agents as))])
+      (parameterize ([current-agent-id id])
+        (define agent (hash-ref the-as id))
         (when expr
           (hash-set! new-h id agent))))
-    (set-agentset-agents! new-as new-h)
-    ;; (current-agentset new-as)
-    (make-parameter new-as))) 
-
+    
+    (agentset (agentset-breed as)
+              (agentset-plural as)
+              new-h
+              (agentset-fields as)
+              (agentset-special-fields as))
+    ))

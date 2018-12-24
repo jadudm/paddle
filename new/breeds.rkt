@@ -29,8 +29,8 @@
            ;; (printf "~a sf: ~a (length ~a)~n" (quote s) special-fields (length special-fields))
            ;; This forms the basis of most (ask ...) forms.
            (define p (make-parameter false))
-           (p (agentset (quote s) (quote p) (make-hash) all-fields special-fields))
-           (hash-set! agentsets (quote p) p)
+           (p (quote p))
+           (hash-set! agentsets (quote p) (agentset (quote s) (quote p) (make-hash) all-fields special-fields))
 
            (define make- (λ values
                            (define v (make-vector (length all-fields)))
@@ -40,10 +40,13 @@
                            (vector-set! v 6 (quote s))
                            (vector-set! v 7 (quote p))
                            (vector-set! v 8 default-draw-function)
+                           (vector-set! v 9 all-fields)
+                           
                            (for ([ndx (length (quote (user-fields ...)))])
                              (vector-set! v (+ ndx (length (append agent-fields agent-control-fields)))
                                           (list-ref values (+ (length agent-fields) ndx))))
                            v))
+           
            (define-syntax-rule (get a k)
              (let ()
                (define ndx (index-of all-fields (quote k)))

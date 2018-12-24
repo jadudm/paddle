@@ -2,9 +2,10 @@
 
 (provide (all-defined-out))
 (require  "agentsets.rkt"
+          "agents.rkt"
           "state.rkt")
 
-(require (for-syntax syntax/parse racket/syntax))
+(require (for-syntax syntax/parse racket/syntax "agents.rkt"))
 (define dirty-bits (make-hash))
 
 (define-syntax (get stx)
@@ -18,7 +19,8 @@
     [(_get a k)
      #`(vector-ref a (index-of (agentset-fields (current-agentset)) (quote k)))]
     [(_get k)
-     #`(vector-ref (current-agent) (index-of (agentset-fields (current-agentset)) (quote k)))]
+     #`(vector-ref (current-agent)
+                   (index-of (get-agent-fields (current-agent)) (quote k)))]
     ))
 
 (define-syntax (set stx)
@@ -33,10 +35,15 @@
      #`(set-patch-field! (current-patch) (quote k) expr)]
     
     [(_set k expr)
-     #`(vector-set! (current-agent) (index-of (agentset-fields (current-agentset)) (quote k)) expr)]
+     #`(set (current-agent) k expr)]
     
     [(_set a k expr)
-      #`(vector-set! a (index-of (agentset-fields (current-agentset)) (quote k)) expr)]
+      #`(begin
+          ;; (printf "setting ~a for ~a~n" (quote k) (agent-id (current-agent)))
+          (vector-set! (hash-ref (agentset-agents (hash-ref agentsets (agent-plural (current-agent))))
+                               (agent-id (current-agent)))
+                     (index-of (get-agent-fields (current-agent)) (quote k))
+                     expr))]
 
     
     ))

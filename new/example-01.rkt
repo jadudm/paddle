@@ -28,7 +28,7 @@
   (list-ref colors next-color))
   
 (define (go)
-  (sleep 1)
+  (sleep .2)
   (ask turtles
     (move 1)
     ;; (set color (color (random 255) (random 255) (random 255)))
@@ -39,10 +39,10 @@
     (define new-c (get-next-color))
 
     (define count 0)
+    (define new-turtles (create turtles 100))
     (ask (create turtles 100)
       (increment! count)
       (set color new-c))
-    (printf "count: ~a~n" count)
     
     (increment! count-rings))
   )

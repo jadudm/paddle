@@ -1,11 +1,12 @@
 #lang racket
 
-(provide (struct-out apair)
+(provide 
          (contract-out
           [make-agent            (-> number? number? number? number?
                                      color? number?
                                      symbol? symbol?
                                      (-> vector? any)
+                                     (listof symbol?)
                                      vector?)]
           [agent-fields          (listof symbol?)]
           [agent-control-fields  (listof symbol?)]
@@ -13,17 +14,18 @@
           [agent-x               (-> vector? number?)]
           [agent-y               (-> vector? number?)]
           [agent-id              (-> vector? number?)]
+          [agent-color           (-> vector? color?)]
+          [agent-plural          (-> vector? symbol?)]
+          [get-agent-fields      (-> vector? (listof symbol?))]
           ))
 
 (require sgl/gl)
 (require "colors.rkt")
 
-(struct apair (id plural))
-
 (define agent-fields '(id pid x y color direction))
-(define agent-control-fields '(singular plural draw))
+(define agent-control-fields '(singular plural draw fields))
 
-(define (make-agent id pid x y color direction singular plural default-draw-function)
+(define (make-agent id pid x y color direction singular plural default-draw-function special-fields)
   (vector
    ;0  1  2 3
    id pid x y
@@ -32,7 +34,9 @@
    ;; 6     7
    singular plural
    ;; 8
-   default-draw-function))
+   default-draw-function
+   ;; 9
+   (append agent-fields agent-control-fields special-fields)))
 
 (define (agent-id a)          (vector-ref a 0))
 (define (agent-pid a)         (vector-ref a 1))
@@ -40,6 +44,8 @@
 (define (agent-y a)           (vector-ref a 3))
 (define (agent-color a)       (vector-ref a 4))
 (define (agent-direction a)   (vector-ref a 5))
+(define (agent-plural a)      (vector-ref a 7))
+(define (get-agent-fields a)  (vector-ref a 9))
 
 (define (default-draw-function agent)
   (let ()

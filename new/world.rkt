@@ -52,9 +52,9 @@
 
 (define (draw-agents)  
   (for ([(plural as) agentsets])
-    (define dfndx (index-of (agentset-fields (as)) 'draw))
+    (define dfndx (index-of (agentset-fields as) 'draw))
     (when (not (member plural '(patches dirty-patches)))
-      (for ([(id critter) (agentset-agents (as))])
+      (for ([(id critter) (agentset-agents as)])
         (parameterize ([current-agent critter])
           (define fun (vector-ref critter dfndx))
           ;; (printf "drawing ~a ~a~n" (agent-breed (current-agent)) (agent-id    (current-agent)))
