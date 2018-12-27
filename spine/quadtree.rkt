@@ -128,6 +128,8 @@
 
 
 (module+ test
+  (require rackunit)
+  
   (define qt (new quadtree%
                   (boundary (make-rect 0 0 100 100))
                   (capacity 4)))
@@ -137,17 +139,37 @@
     (send qt insert (make-point x y '_))
     )
 
-  (send qt query
-        (make-rect 0 0 5 5)
-        )
-  '------
-  (send qt query
-        (make-rect 5 5 5 5)
-        )
-  '------
-  (send qt query
-        (make-rect 10 10 1 1)
-        )
+  (define (set-equal? v1)
+    (λ (v2)
+      (andmap (λ (p)
+                (ormap (λ (v)
+                         (equal? p v))
+                       v2))
+              v1)))
+  
+  (check-pred (set-equal? '(#(0 0 _)
+                            #(1 1 _)
+                            #(2 2 _)
+                            #(3 3 _)
+                            #(4 4 _)
+                            #(5 5 _)))
+              (send qt query
+                    (make-rect 0 0 5 5)
+                    ))
+  (check-pred (set-equal?
+               '(#(3 3 _) #(2 2 _) #(1 1 _) #(0 0 _)
+                          #(7 7 _) #(6 6 _) #(5 5 _)
+                          #(4 4 _) #(10 10 _) #(9 9 _)
+                          #(8 8 _)))
+              (send qt query
+                    (make-rect 5 5 5 5)))
+
+  (check-pred (set-equal? '(#(11 11 _)
+                            #(10 10 _)
+                            #(9 9 _)))
+              (send qt query
+                    (make-rect 10 10 1 1)
+                    ))
 
   
   )

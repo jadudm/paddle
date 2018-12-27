@@ -31,4 +31,3 @@
                       (get-agentset-meta plural 'singular)
                       '-next-index)))
 
-   

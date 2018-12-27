@@ -1,5 +1,7 @@
 #lang racket
 
+(provide (all-defined-out))
+
 (require (for-syntax racket/syntax syntax/parse))
 (require "agentsets.rkt"
          "util.rkt"
@@ -11,7 +13,7 @@
      #`(begin
          (define plural (quote plural))
          ;; FIXME: Start small for testing.
-         (set-agentset! (quote plural) (make-vector 10 false))
+         (set-agentset! (quote plural) (make-vector 20 false))
          (init-meta (quote plural))
          ;; (printf "asm: ~a~n" agentsets-meta)
          (set-agentset-meta! (quote plural)
