@@ -1,18 +1,9 @@
 #lang racket
 
-(require "breeds.rkt"
-         "agentsets.rkt"
-         "agents.rkt"
-         "world.rkt"
-         "netlogo.rkt"
-         "state.rkt"
-         "get-set.rkt"
-         "types.rkt"
-         racket/syntax
-         )
+(require paddle)
 
-(define WORLD 50)
-(make-world WORLD 600)
+(define RxC 50)
+(make-world RxC 600)
 
 (create-breed turtle turtles)
 (create turtles 200)

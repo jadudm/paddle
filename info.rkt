@@ -7,4 +7,6 @@
                "gui-lib"
                "sgl"))
 
-(define scribblings '(("scribblings/paddle.scrbl" (multi-page))))
+(define scribblings '(("scribblings/paddle.scrbl" 
+                      #;(multi-page)
+                      )))

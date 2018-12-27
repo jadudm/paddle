@@ -28,9 +28,9 @@ Here is an example of a paddle that randomly distributes turtles around the worl
 
 (define (setup)
   (ask turtles
-      (set xcor (random (get global world-cols)))
-      (set ycor (random (get global world-rows)))
-      (set direction (random 360))
+      (set turtle-x (random (get global world-cols)))
+      (set turtle-y (random (get global world-rows)))
+      (set turtle-direction (random 360))
   ))
 
 (define (go)
@@ -38,8 +38,7 @@ Here is an example of a paddle that randomly distributes turtles around the worl
     (move 1))
   )
 
-
-(tick-pause (/ 1 30))
+(sleep 0.1)
 (run-world setup go)
 }|
 
