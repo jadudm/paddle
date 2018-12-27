@@ -13,7 +13,7 @@
   (cond
     ;; If we're given a symbol, they're asking for the whole
     ;; agentset, and I should fetch it.
-    [(symbol? as) (get-agentset as)]
+    [(symbol? as) (vector->list (get-agentset as))]
     ;; Possible checks for things that are an error...
     ;; Or, check that it is the right kind of thing.
     ;; To be decided.
@@ -21,12 +21,12 @@
 
 (define-syntax-rule (ask as body ...)
   (let ()
-    (current-agentset (get-agents as))
-    (for ([agent (get-agents as)])
-      (when (vector? agent)
-        (parameterize ([current-agent agent])
-          body ...))
-    )))
+    (parameterize ([current-agentset (get-agents as)])
+      (for ([agent (get-agents as)])
+        (when (vector? agent)
+          (parameterize ([current-agent agent])
+            body ...))
+        ))))
 
 (define (sniff plural distance)
   (when (vector? (current-agent))
@@ -39,6 +39,18 @@
                                                       distance distance)
                   ))))
 
+;; We need a syntax so that the expression will be
+;; passed through. However, all we need to do is filter over the
+;; agents provided, and return the resulting list.
+(define-syntax-rule (where as expr)
+  (let ([agents (get-agents as)])
+    (filter (λ (a)
+              (parameterize ([current-agent a])
+                (and a expr)))
+            agents)))
+
+
+   
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Movement
 (define pi-conv (/ pi 180))
