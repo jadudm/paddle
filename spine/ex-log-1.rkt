@@ -2,13 +2,14 @@
 
 (require paddle "log.rkt" "plot.rkt")
 
-(define RxC 200)
+(define RxC 100)
 (make-world RxC 600)
 
 (create-breed turtle turtles)
-(create turtles 200)
+(create turtles 400)
 (create-log yellow-turtle-counts)
 (create-log other-turtle-counts)
+
 (create-plot yellow-turtle-counts
              other-turtle-counts)
 
@@ -35,7 +36,7 @@
        (set turtle-color (color 255 255 0)))
      )
 
-  (when (even? (ticker))
+  (when (zero? (modulo (ticker) 10))
     (log yellow-turtle-counts
          (where turtles (equal? (get turtle-color)
                                 (color 255 255 0)

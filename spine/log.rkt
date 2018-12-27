@@ -8,7 +8,17 @@
 
 (define-syntax-rule (create-log log-tag)
   (begin
-    (let ([conn (sqlite3-connect #:database 'memory)])
+    (define fname (format "~a.sqlite" (quote log-tag)))
+    ;; Make sure it is an SQLite DB file.
+    (when (and (file-exists? fname)
+               (regexp-match "sqlite$" fname))
+      (delete-file fname))
+    ;; Create an empty file.
+    (close-output-port (open-output-file fname))
+    
+    (let ([conn (sqlite3-connect #:database (format "~a.sqlite"
+                                                    (quote log-tag)
+                                                    ))])
       (hash-set! log-conns (quote log-tag) conn)
       (query-exec
        conn
