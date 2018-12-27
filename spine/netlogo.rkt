@@ -8,6 +8,7 @@
          "util.rkt"
          "quadtree.rkt"
          )
+(require (for-syntax syntax/parse))
 
 (define (get-agents as)
   (cond
@@ -30,24 +31,30 @@
 
 (define (sniff plural distance)
   (when (vector? (current-agent))
-    (filter (λ (a)
-              (and (symbol=? (vector-ref a agent-plural) plural)
-                   (not (= (vector-ref a agent-id)
-                           (vector-ref (current-agent) agent-id)))))
-            (send (current-quadtree) query (make-rect (vector-ref (current-agent) agent-x)
-                                                      (vector-ref (current-agent) agent-y)
-                                                      distance distance)
-                  ))))
+    (define new-as
+      (filter (λ (a)
+                (and (symbol=? (vector-ref a agent-plural) plural)
+                     (not (= (vector-ref a agent-id)
+                             (vector-ref (current-agent) agent-id)))))
+              (send (current-quadtree)
+                    query
+                    (make-rect (vector-ref (current-agent) agent-x)
+                               (vector-ref (current-agent) agent-y)
+                               distance distance))))
+    new-as))
 
 ;; We need a syntax so that the expression will be
 ;; passed through. However, all we need to do is filter over the
 ;; agents provided, and return the resulting list.
-(define-syntax-rule (where as expr)
-  (let ([agents (get-agents as)])
-    (filter (λ (a)
-              (parameterize ([current-agent a])
-                (and a expr)))
-            agents)))
+(define-syntax (where stx)
+  (syntax-parse stx
+    [(_where as expr)
+     #`(let ([agents (get-agents as)])
+         (filter (λ (a)
+                   (parameterize ([current-agent a])
+                     (and a expr)))
+                 agents))]
+    ))
 
 
    
