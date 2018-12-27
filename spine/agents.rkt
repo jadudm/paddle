@@ -1,8 +1,7 @@
 #lang racket
 
-(require (except-in racket/gui set)
-         sgl/gl)
 
+(require sgl/gl)
 (require "agentsets.rkt"
          "util.rkt"
          "state.rkt"
@@ -11,18 +10,22 @@
 
 (provide create
          show-agents
-         agent-id
-         agent-x
-         agent-y
          agent-direction
          )
 
-(define base-fields '(breed plural id pid x y direction color))
-(define agent-id 2)
-(define agent-x 4)
-(define agent-y 5)
-(define agent-direction 6)
-(define agent-color 7)
+(require (for-syntax syntax/parse racket/syntax racket/list "types.rkt"))
+(define-syntax (create-accessors stx)
+  (syntax-parse stx
+    [(_ca)
+     (with-syntax ([(id ...)
+                    (for/list ([o agent-base-fields])
+                      (format-id stx "agent-~a" o))]
+                    [(nums ...) (range (length agent-base-fields))]
+                   )
+       #`(begin (define id nums) ...
+                (provide id) ...))]))
+
+(create-accessors)
 
 (define (make-default-agent sing plur ndx)
   (define x (/ (get-global 'world-columns) 2))
@@ -69,7 +72,7 @@
       (printf "~a: ~a~n" ndx agent))))
 
 
-   
+;; FIXME
 (define (draw-agent a)
   (let ()
     ;; (printf "agent: ~a~n" a)
