@@ -1,13 +1,11 @@
 #lang racket
-(provide create-log log get-log)
+(provide create-log log get-log log-conns)
 
 (require db sql
          "netlogo.rkt"
          "agents.rkt"
          "state.rkt")
 
-
-(define log-conns (make-hash))
 (define-syntax-rule (create-log log-tag)
   (begin
     (let ([conn (sqlite3-connect #:database 'memory)])

@@ -16,12 +16,6 @@
   (set-global! 'frame-height pixels))
 
 
-(define threads-to-kill '())
-(define (add-thread-to-kill! t)
-  (set! threads-to-kill (cons t threads-to-kill)))
-(define stop (make-parameter false))
-
-
 (require "quadtree.rkt")
 (define (build-quadtree)
   (define qt (new quadtree%
@@ -68,7 +62,7 @@
     (thread (λ ()
               (send win show #t)
               (send gl on-paint)
-              (tick)
+              (world-tick)
               
               (let loop ()
 
@@ -76,7 +70,7 @@
                 (build-quadtree)
                 (go)
                 (send gl on-paint)
-                (tick)
+                (world-tick)
                 
 
                 ;; Rinse and repeat

@@ -1,13 +1,16 @@
 #lang racket
 
-(require paddle "log.rkt")
+(require paddle "log.rkt" "plot.rkt")
 
-(define RxC 50)
+(define RxC 200)
 (make-world RxC 600)
 
 (create-breed turtle turtles)
 (create turtles 200)
 (create-log yellow-turtle-counts)
+(create-log other-turtle-counts)
+(create-plot yellow-turtle-counts
+             other-turtle-counts)
 
 (define (wiggle n)
   (define _n (random n))
@@ -36,7 +39,12 @@
     (log yellow-turtle-counts
          (where turtles (equal? (get turtle-color)
                                 (color 255 255 0)
-                                ))))
+                                )))
+    (log other-turtle-counts
+         (where turtles (not (equal? (get turtle-color)
+                                     (color 255 255 0)
+                                     ))))
+    )
        
   )
 

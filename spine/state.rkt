@@ -27,6 +27,15 @@
 
 (define ticker (make-parameter 0))
 (define tick-pause (make-parameter (/ 1 60)))
-(define (tick)
+(define (world-tick)
   (ticker (add1 (ticker)))
   (sleep (tick-pause)))
+
+;; For logging and plotting
+(define log-conns (make-hash))
+
+;; For cleanup of the world.
+(define threads-to-kill '())
+(define (add-thread-to-kill! t)
+  (set! threads-to-kill (cons t threads-to-kill)))
+(define stop (make-parameter false))
