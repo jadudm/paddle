@@ -11,6 +11,10 @@
 
 (provide create
          show-agents
+         agent-id
+         agent-x
+         agent-y
+         agent-direction
          )
 
 (define base-fields '(breed plural id pid x y direction color))
