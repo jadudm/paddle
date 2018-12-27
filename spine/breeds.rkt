@@ -26,6 +26,7 @@
                       
      #`(begin
          (define plural (quote plural))
+         ;; (define singular (quote singular))
          ;; FIXME: Start small for testing.
          (set-agentset! (quote plural) (make-vector DEFAULT-AGENTSET-SIZE false))
          (init-meta (quote plural))

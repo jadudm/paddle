@@ -4,7 +4,9 @@
 
 (define DEFAULT-AGENTSET-SIZE 10000)
 
-(define current-agent (make-parameter false))
+(define current-agent    (make-parameter false))
+(define current-agentset (make-parameter false))
+(define current-quadtree (make-parameter false))
 
 (define globals (make-hash))
 (define-values (get-global set-global!)

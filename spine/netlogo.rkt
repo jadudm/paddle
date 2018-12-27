@@ -5,7 +5,9 @@
          "breeds.rkt"
          "state.rkt"
          "world.rkt"
-         "util.rkt")
+         "util.rkt"
+         "quadtree.rkt"
+         )
 
 (define (get-agents as)
   (cond
@@ -19,11 +21,23 @@
 
 (define-syntax-rule (ask as body ...)
   (let ()
+    (current-agentset (get-agents as))
     (for ([agent (get-agents as)])
-     (parameterize ([current-agent agent])
-       (when (current-agent)
-         body ...))
+      (when (vector? agent)
+        (parameterize ([current-agent agent])
+          body ...))
     )))
+
+(define (sniff plural distance)
+  (when (vector? (current-agent))
+    (filter (λ (a)
+              (and (symbol=? (vector-ref a agent-plural) plural)
+                   (not (= (vector-ref a agent-id)
+                           (vector-ref (current-agent) agent-id)))))
+            (send (current-quadtree) query (make-rect (vector-ref (current-agent) agent-x)
+                                                      (vector-ref (current-agent) agent-y)
+                                                      distance distance)
+                  ))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Movement

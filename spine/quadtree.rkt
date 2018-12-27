@@ -1,5 +1,7 @@
 #lang racket
 
+(provide quadtree% make-rect make-point)
+
 ;; This abstraction is unnecessary, because
 ;; agents all carry their x/y data with them.
 (define (make-point x y data)
@@ -7,6 +9,8 @@
 (define point-x 0)
 (define point-y 1)
 (define point-data 2)
+(define (get-point-data v)
+  (vector-ref v point-data))
 
 ;; Should rectangles just be vectors?
 ;; If I'm going for compactness and speed, why not?
@@ -108,9 +112,10 @@
         [else
          
          (define found-p
-           (filter (λ (p)
-                     (contains? p range))
-                   points))
+           (map get-point-data
+                (filter (λ (p)
+                          (contains? p range))
+                        points)))
          (define sub-p
            (cond
              [divided?

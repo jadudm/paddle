@@ -6,6 +6,7 @@
 (require "state.rkt"
          "agentsets.rkt"
          "agents.rkt"
+         "get-set.rkt"
          )
 
 (define (make-world cols pixels)
@@ -19,6 +20,26 @@
 (define (add-thread-to-kill! t)
   (set! threads-to-kill (cons t threads-to-kill)))
 (define stop (make-parameter false))
+
+
+(require "quadtree.rkt")
+(define (build-quadtree)
+  (define qt (new quadtree%
+                  (boundary (make-rect 0 0
+                                       (get-global 'world-columns)
+                                       (get-global 'world-rows)))
+                  (capacity 4)))
+  
+  (for ([(plural as) agentsets])
+    (for ([a as])
+      (when a
+        ;; Don't insert ourselves.
+        (send qt insert (make-point (vector-ref a agent-x)
+                                    (vector-ref a agent-y)
+                                    a)))))
+  (current-quadtree qt)
+  )
+  
 
 (define (run-world setup go
                    #:interface [interface false])
@@ -52,6 +73,7 @@
               (let loop ()
 
                 ;; (printf "About to run (go)~n")
+                (build-quadtree)
                 (go)
                 (send gl on-paint)
                 (tick)
