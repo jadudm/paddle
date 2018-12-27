@@ -8,6 +8,8 @@
 
 (define channels (make-hash))
 (define threads  (make-hash))
+
+;; http://tools.medialab.sciences-po.fr/iwanthue/
 (define distinct-colors
   (map (λ (ls)
          (make-object color% (first ls) (second ls) (third ls)))
