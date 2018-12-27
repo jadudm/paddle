@@ -11,7 +11,7 @@
          racket/syntax
          )
 
-(define WORLD 150)
+(define WORLD 100)
 (make-world WORLD 600)
 
 (create-breed turtle turtles)
