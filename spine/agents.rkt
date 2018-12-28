@@ -41,8 +41,9 @@
                               (random 256)
                               (random 256)))
                  (map (λ (f) 0)
-                      (drop (get-agentset-meta plur 'fields) 6)))) 
-  )
+                      (drop (get-agentset-meta plur 'fields)
+                            (length agent-base-fields)))) 
+         ))
 
 
 ;; This creates new agent vectors and inserts them into
