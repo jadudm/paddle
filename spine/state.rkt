@@ -20,16 +20,16 @@
 (set-global! 'world-rows    20)
 (set-global! 'frame-width  400)
 (set-global! 'frame-height 400)
+(set-global! 'ticker 0)
 
 (define (->pid x y)
   (+ (* (get-global 'world-rows) y) x))
 
 
-(define ticker (make-parameter 0))
+(define ticker (thunk (get-global 'ticker)))
 (define tick-pause (make-parameter (/ 1 60)))
 (define (world-tick)
-  (ticker (add1 (ticker)))
-  (sleep (tick-pause)))
+  (set-global! 'ticker (add1 (get-global 'ticker))))
 
 ;; For logging and plotting
 (define log-conns (make-hash))
