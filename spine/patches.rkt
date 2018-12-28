@@ -24,9 +24,3 @@
       (set-patch-field-no-dirty! pid 'patch-y row)
       (set-patch-field-no-dirty! pid 'patch-color (color 0 0 0))
       )))
-
-;; values
-
-#;(define (get-patch-coordinate pid)
-  (coordinate (quotient  pid (get global world-cols))
-              (remainder pid (get global world-rows))))

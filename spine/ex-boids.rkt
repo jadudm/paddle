@@ -13,7 +13,7 @@
 (create-breed boid boids #:have eyesight)
 
 ;; I want many turtles.
-(create boids 800)
+(create boids 1000)
 
 (define minimum-separation 2)
 
