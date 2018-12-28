@@ -7,6 +7,7 @@
          "util.rkt"
          "agents.rkt"
          "state.rkt"
+         "types.rkt"
          )
 
 (require (for-syntax racket/list "types.rkt"))
@@ -43,6 +44,9 @@
          ;; Hence the quasi-unquote-syntax.
          (set-agentset-meta! (quote plural) #,(quote 'plural) (quote plural))
          (set-agentset-meta! (quote plural) #,(quote 'singular) (quote singular))
+         (set-agentset-meta! (quote plural) 'fields
+                             (append agent-base-fields
+                                     (syntax->datum #'(user-fields ...))))
          (define breed-ids nums) ...
          ))
      ]))

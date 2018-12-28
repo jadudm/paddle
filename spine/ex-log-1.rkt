@@ -1,6 +1,6 @@
 #lang racket
 
-(require paddle "log.rkt" "plot.rkt")
+(require paddle)
 
 (define RxC 100)
 (make-world RxC 600)
@@ -12,6 +12,7 @@
 
 (create-plot yellow-turtle-counts
              other-turtle-counts)
+
 
 (define (wiggle n)
   (define _n (random n))

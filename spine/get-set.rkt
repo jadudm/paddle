@@ -59,3 +59,64 @@
 ;; This needs to be memoized for performance.
 ;; Actually, it is probably not performance critical.
 (define ->patch ->pid)
+;; ---------
+
+(define dirty-patch!
+  (case-lambda
+    [(x y) (dirty-patch! (* (exact-floor x) (exact-floor y)))]
+    [(pid) (hash-set! dirty-bits pid true)]))
+
+(define clean-patch!
+  (case-lambda
+    [(x y) (clean-patch! (* (exact-floor x) (exact-floor y)))]
+    [(pid) (when (hash-has-key? dirty-bits pid)
+             (set-patch-field-no-dirty! pid 'pcolor (color 0 0 0))
+             (hash-remove! dirty-bits pid))]))
+
+(define patch-dirty?
+  (case-lambda
+    [(x y) (patch-dirty? (* (exact-floor x) (exact-floor y)))]
+    [(pid) (hash-ref dirty-bits pid)]))
+
+(define (get-dirty-patch-ids)
+  (hash-keys dirty-bits))
+
+(define set-patch-field-no-dirty!
+  (case-lambda
+    [(x y k v) (set-patch-field! (* (exact-floor x) (exact-floor y)) k v)]
+    [(pid k v)
+     ;; (dirty-patch! pid)
+     (hash-set! (vector-ref (get-global 'the-world) pid) k v)]))
+
+(define set-patch-field!
+  (case-lambda
+    [(x y k v) (set-patch-field! (* (exact-floor x) (exact-floor y)) k v)]
+    [(pid k v)
+     ;; Setting something on a patch makes it dirty.
+     (dirty-patch! pid)
+     ;;(printf "set pid ~a k ~a v ~a~n" pid k v)
+     (hash-set! (vector-ref (get-global 'the-world) pid) k v)]))
+
+(define get-patch-field
+  (case-lambda
+    [(x y k) (get-patch-field (* x y) k)]
+    [(pid k)
+     (define result (hash-ref (vector-ref (get-global 'the-world) pid) k 'NoPatchFieldsFound))
+     ;;(printf "get pid ~a k ~a v ~a~n" pid k result)
+     result]
+     ))
+
+
+(define clear-patch!
+  (case-lambda
+    [()
+     (cond
+       [(number? (current-patch)) (clear-patch! (current-patch))]
+       [else
+        (clear-patch! (->patch (current-agent)))])]
+    [(pid)
+     (clean-patch! pid)]))
+    
+
+;; This needs to be memoized for performance.
+;; Actually, it is probably not performance critical.

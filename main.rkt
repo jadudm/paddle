@@ -10,6 +10,7 @@
          "spine/get-set.rkt"
          "spine/util.rkt"
          "spine/netlogo.rkt"
+         "spine/log.rkt" "spine/plot.rkt"
          )
 
 (provide (all-from-out
@@ -23,4 +24,5 @@
           "spine/get-set.rkt"
           "spine/util.rkt"
           "spine/netlogo.rkt"
+          "spine/log.rkt" "spine/plot.rkt"
           ))

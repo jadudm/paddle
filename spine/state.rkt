@@ -5,6 +5,7 @@
 (define DEFAULT-AGENTSET-SIZE 10000)
 
 (define current-agent    (make-parameter false))
+(define current-patch    (make-parameter false))
 (define current-agentset (make-parameter false))
 (define current-quadtree (make-parameter false))
 
@@ -24,7 +25,7 @@
 
 (define (->pid x y)
   (+ (* (get-global 'world-rows) y) x))
-
+(define dirty-bits (make-hash))
 
 (define ticker (thunk (get-global 'ticker)))
 (define tick-pause (make-parameter (/ 1 60)))

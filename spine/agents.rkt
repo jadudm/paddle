@@ -30,16 +30,19 @@
 (define (make-default-agent sing plur ndx)
   (define x (/ (get-global 'world-columns) 2))
   (define y (/ (get-global 'world-rows) 2))
-  (vector sing plur
-          ndx
-          ;; Our initial patch is the middle.
-          (->pid x y)
-          x y
-          (random 360)
-          (color (random 256)
-                 (random 256)
-                 (random 256))
-          ))
+  (apply vector
+         (append (list sing plur
+                       ndx
+                       ;; Our initial patch is the middle.
+                       (->pid x y)
+                       x y
+                       (random 360)
+                       (color (random 256)
+                              (random 256)
+                              (random 256)))
+                 (map (λ (f) 0)
+                      (drop (get-agentset-meta plur 'fields) 6)))) 
+  )
 
 
 ;; This creates new agent vectors and inserts them into
