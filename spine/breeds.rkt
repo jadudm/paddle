@@ -35,8 +35,10 @@
          
          ;; (define singular (quote singular))
          ;; FIXME: Start small for testing.
-         (set-agentset! (quote plural) (make-vector DEFAULT-AGENTSET-SIZE false))
+         (set-agentset! (quote plural) (make-empty-agentset))
          (init-meta (quote plural))
+         ;; FIXME
+         ;; Is this necessary with hash tables as agentsets?
          (set-max! (quote plural) DEFAULT-AGENTSET-SIZE)
          ;; (printf "asm: ~a~n" agentsets-meta)
          (set-agentset-meta! (quote plural)

@@ -143,7 +143,9 @@
   ;; FIXME
   ;; https://bitbucket.org/jadudm/paddle/issues/6/quadtree-has-not-been-tested-with-multiple
   (for ([(plural as) agentsets])
-    (for ([a as])
+    ;; FIXME
+    ;; Leaky abstraction from agentsets.
+    (for ([(id a) as])
       (when a
         ;; Don't insert ourselves.
         (send qt insert (make-point (vector-ref a agent-x)

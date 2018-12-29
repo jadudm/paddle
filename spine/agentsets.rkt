@@ -1,16 +1,52 @@
 #lang racket
 
-(provide (contract-out
-          
-          
-          [get-max-id                 (-> symbol? number?)]
-          [compact-agentset           (-> symbol? any)]
-          [extend-agentset            (-> symbol? any)]
-          ))
+(provide
+ (combine-out
+  (rename-out  [get-agent/hash                get-agent]
+               [make-empty-agentset/hash      make-empty-agentset]
+               [insert-into-agentset!/hash    insert-into-agentset!]
+               [compact-agentset/hash         compact-agentset]
+               [agentset->list/hash           agentset->list]
+               )
+  (contract-out
+   [make-empty-agentset/hash        (-> hash?)]
+   [make-empty-agentset/vector      (-> vector?)]
+   [insert-into-agentset!/hash      (-> hash? number? vector? any)]
+   [get-agent/hash                  (-> hash? number? (or vector? boolean?))]
+   [compact-agentset/vector         (-> symbol? any)]
+   [compact-agentset/hash           (-> symbol? any)]
+   [agentset->list/hash             (-> hash? list?)]
+   ))
+ (contract-out
+  [get-max-id                 (-> symbol? number?)]
+  [extend-agentset/vector            (-> symbol? any)]
+  ))
 
 (require "util.rkt"
          "state.rkt")
 
+;; FIXME
+;; Needs a rename/rename-out
+(define (make-empty-agentset/hash)
+  (make-hash))
+
+(define (make-empty-agentset/vector)
+  (make-vector DEFAULT-AGENTSET-SIZE false))
+
+;; FIXME
+;; Needs a rename/rename-out
+(define (insert-into-agentset!/hash set ndx agent)
+  (hash-set! set ndx agent))
+
+(define (get-agent/hash set ndx)
+  (hash-ref set ndx false))
+
+;; FIXME
+;; Agentsets should be lists of numbers, not lists
+;; of agents. This would keep things tighter. Granted,
+;; they should be being passed as references, but...
+(define (agentset->list/hash agentset)
+  (hash-values agentset))
 
 ;; Returns the largest identifier used for agents of this breed.
 ;; FIXME
@@ -53,7 +89,7 @@
   new-end-index
   )
 
-(define (compact-agentset plural)
+(define (compact-agentset/vector plural)
   ;; (printf "Compacting ~a~n" plural)
   (define singular (get-agentset-meta plural 'singular))
   (define as (get-agentset plural))
@@ -63,7 +99,9 @@
   (set-agentset-meta! plural (combine-to-symbol singular '-next-index) new-end-index)
   )
 
-(define (extend-agentset plural)
+(define (compact-agentset/hash plural) (void))
+
+(define (extend-agentset/vector plural)
   (printf "Extending ~a to ~a~n" plural (get-max plural))
   ;; (printf "Compacting ~a~n" plural)
   (define singular (get-agentset-meta plural 'singular))
@@ -91,4 +129,3 @@
   (check-equal? nex 5)
   (check-equal? v #(0 2 4 6 8 #f #f #f #f #f))
   )
-  

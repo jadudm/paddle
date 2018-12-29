@@ -8,8 +8,8 @@
          "types.rkt"
          )
 
-(provide create
-         hatch
+(provide (rename-out [create/hash create])
+         (rename-out [hatch/hash   hatch])
          show-agents
          agent-direction
          )
@@ -35,7 +35,7 @@
 
 ;; This creates new agent vectors and inserts them into
 ;; the correct breed's agentset.
-(define (create plural-sym num #:return-new-set [rns false])
+(define (create/spine plural-sym num #:return-new-set [rns false])
   (define singular (get-agentset-meta plural-sym 'singular))
   (define sym (combine-to-symbol singular '-next-index))
   (define starting-ndx (get-agentset-meta plural-sym sym))
@@ -50,7 +50,7 @@
 
     (when (>= (+ num starting-ndx) (* (get-max plural-sym) 0.9))
       (set-max! plural-sym (* 2 (get-max plural-sym)))
-      (extend-agentset plural-sym))
+      (extend-agentset/vector plural-sym))
 
     (define new-set (make-vector 0))
     (when rns
@@ -75,8 +75,39 @@
       [else (void)])
     ))
 
-(define (hatch plural-sym num)
-  (create plural-sym num #:return-new-set true))
+ (define (create/hash plural-sym num #:return-new-set [rns false])
+  (define singular (get-agentset-meta plural-sym 'singular))
+  (define sym (combine-to-symbol singular '-next-index))
+  (define starting-ndx (get-agentset-meta plural-sym sym))
+
+   ;; Need an ADT...
+   (define new-set (make-empty-agentset))
+   
+   (for ([ndx (range starting-ndx (+ num starting-ndx))])
+     ;; (printf "Creating agent: ~a~n" ndx)
+     (let ([agent (make-default-agent singular plural-sym ndx)]
+           [asvec (get-agentset plural-sym)])
+       (insert-into-agentset! asvec ndx agent)
+       (when rns
+         (insert-into-agentset! new-set (- ndx starting-ndx) agent))
+       )
+     
+     (set-agentset-meta! plural-sym (combine-to-symbol singular '-next-index) (+ num starting-ndx))
+     (set-agentset-meta! plural-sym
+                         'default-drawing-function
+                         draw-agent)
+     )
+   
+   (cond
+     [rns new-set]
+     [else (void)])
+   )
+
+(define (hatch/spine plural-sym num)
+  (create/spine plural-sym num #:return-new-set true))
+
+(define (hatch/hash plural-sym num)
+  (create/hash plural-sym num #:return-new-set true))
   
 
 ;; Once agents start dying, this will not work.
@@ -85,7 +116,7 @@
   (define max-id (get-max-id plural))
   (for ([ndx (range max-id)])
     ;; FIXME: What happens when agents die? Set them to false?
-    (define agent (vector-ref agentset ndx))
+    (define agent (get-agent agentset ndx))
     (when (vector? agent)
       (printf "~a: ~a~n" ndx agent))))
 

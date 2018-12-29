@@ -134,7 +134,9 @@
 (define (draw-agents)  
   (for ([(plural as) agentsets])
     (when (not (member plural '(patches dirty-patches)))
-      (for ([critter (get-agentset plural)])
+      ;; FIXME
+      ;; This is a leaky abstraction from the agentsets.
+      (for ([(id critter) (get-agentset plural)])
         (when critter
           (parameterize ([current-agent critter])
             ((get-agentset-meta plural 'default-drawing-function) critter)

@@ -15,7 +15,7 @@
   (cond
     ;; If we're given a symbol, they're asking for the whole
     ;; agentset, and I should fetch it.
-    [(symbol? as) (vector->list (get-agentset as))]
+    [(symbol? as) (agentset->list (get-agentset as))]
     ;; Possible checks for things that are an error...
     ;; Or, check that it is the right kind of thing.
     ;; To be decided.
