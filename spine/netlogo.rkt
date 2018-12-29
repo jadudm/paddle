@@ -56,7 +56,17 @@
                  agents))]
     ))
 
-
+(define die
+  (case-lambda
+    [()
+     (die (current-agent))]
+    [(ca)
+     (define plural (vector-ref ca agent-plural))
+     ;; We just set that agent to false, and they go away.
+     ;; I think.
+     (vector-set! (hash-ref agentsets plural)
+                  (vector-ref ca agent-id)
+                  false)]))
    
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Movement

@@ -1,22 +1,11 @@
 #lang racket
 
-(require "breeds.rkt"
-         "agentsets.rkt"
-         "agents.rkt"
-         "world.rkt"
-         "netlogo.rkt"
-         "state.rkt"
-         "get-set.rkt"
-         "types.rkt"
-         racket/syntax
-         )
+(require paddle)
 
-(define WORLD 100)
-(make-world WORLD 600)
-
+(define RxC 300)
+(make-world RxC 600)
 (create-breed turtle turtles)
 (create turtles 1000)
-
 
 (define turtle-0
   (list (vector-ref (get-agentset 'turtles) 0)))
@@ -30,8 +19,8 @@
     (set turtle-color (color 255 255 0)))
 
   (ask turtles
-    (set turtle-x (random WORLD))
-    (set turtle-y (random WORLD))
+    (set turtle-x (random RxC))
+    (set turtle-y (random RxC))
     ))
 
 (define (go)
@@ -56,3 +45,4 @@
   )
 
 (run-world setup go)
+

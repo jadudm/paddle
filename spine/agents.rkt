@@ -9,6 +9,7 @@
          )
 
 (provide create
+         hatch
          show-agents
          agent-direction
          )
@@ -48,22 +49,36 @@
 
 ;; This creates new agent vectors and inserts them into
 ;; the correct breed's agentset.
-(define (create plural-sym num)
+(define (create plural-sym num #:return-new-set [rns false])
   (define singular (get-agentset-meta plural-sym 'singular))
   (define sym (combine-to-symbol singular '-next-index))
   (define starting-ndx (get-agentset-meta plural-sym sym))
+  (define new-set (make-vector 0))
+  (when rns
+    (set! new-set (make-vector num)))
+  
   (for ([ndx (range starting-ndx (+ num starting-ndx))])
     ;; (printf "Creating agent: ~a~n" ndx)
     (let ([agent (make-default-agent singular plural-sym ndx)]
           [asvec (get-agentset plural-sym)])
       (vector-set! asvec ndx agent)
+      (when rns
+        (vector-set! new-set (- ndx starting-ndx) agent))
       )
     (set-agentset-meta! plural-sym (combine-to-symbol singular '-next-index) (+ num starting-ndx))
     (set-agentset-meta! plural-sym
                         'default-drawing-function
                         draw-agent)
-    ))
+    )
 
+  (cond
+    [rns (vector->list new-set)]
+    [else (void)])
+  )
+
+(define (hatch plural-sym num)
+  (create plural-sym num #:return-new-set true))
+  
 
 ;; Once agents start dying, this will not work.
 (define (show-agents plural)

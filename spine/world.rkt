@@ -1,29 +1,69 @@
 #lang racket
 
-(provide (all-defined-out))
+(provide (contract-out
+          [make-world                    (-> number? number? any)]
+          [run-world                     (-> procedure? procedure? any)]
+          ))
+
+;; Libraries in the Racket distribution
 (require (except-in racket/gui set)
          sgl/gl)
-(require "state.rkt"
-         "agentsets.rkt"
-         "agents.rkt"
-         "get-set.rkt"
-         )
 
+;; Libraries from Paddle.
+(require "agents.rkt"
+         "agentsets.rkt"
+         "gui.rkt"
+         "quadtree.rkt"
+         "state.rkt")
+
+;; ------------------------------------------------------------
+;; EXTERNAL
+
+;; Sets the global parameters for the world.
+;; These parameters are used by the drawing functions
+;; and patch creation. 
 (define (make-world cols pixels)
+  ;; (printf "Making world c ~a p ~a~n" cols pixels)
   (set-global! 'world-columns cols)
   (set-global! 'world-rows cols)
   (set-global! 'frame-width pixels)
-  (set-global! 'frame-height pixels))
+  (set-global! 'frame-height pixels)
+  (set-global! 'ticker 0)
+  )
 
+;; RUN-WORLD
+;; This runs everything.
+(define (run-world user-setup
+                   user-go
+                   #:interface [interface false])
 
-(require "quadtree.rkt")
+    (define-values (frame canvas)
+      (world-setup user-setup))
+  
+  ;; This actually spawns the draw thread...
+  (add-thread-to-kill! (draw-thread frame canvas user-go))
+  (stop (λ ()
+          (map kill-thread threads-to-kill)
+          ;; Clean up globals
+          (clear-global-structures)
+          ;; Collect garbage.
+          (collect-garbage 'major)
+          )))
+
+;; ----------------------------------------------------------------
+;; INTERNAL
+
+;; Used to build a quadtree of all of the agents on every world draw.
+;; FIXME
+;; https://bitbucket.org/jadudm/paddle/issues/8/should-quadtree-building-be-always-or
 (define (build-quadtree)
   (define qt (new quadtree%
                   (boundary (make-rect 0 0
                                        (get-global 'world-columns)
                                        (get-global 'world-rows)))
                   (capacity 4)))
-  
+  ;; FIXME
+  ;; https://bitbucket.org/jadudm/paddle/issues/6/quadtree-has-not-been-tested-with-multiple
   (for ([(plural as) agentsets])
     (for ([a as])
       (when a
@@ -35,57 +75,69 @@
   )
   
 
-(define (run-world setup go
-                   #:interface [interface false])
-  
-  (printf "Building frame.~n")
+(define (make-frame)
   (define-values (screen-x screen-y)
     (get-display-size))
-  (define win (new paddle-frame%
-                   [label "paddle gl"]
-                   [min-width  (get-global 'frame-width)]
-                   [min-height (get-global 'frame-height)]
-                   [x (- screen-x (get-global 'frame-width) 50)]
-                   [y 50]
-                   ))
-  
-  (printf "Building canvas.~n")
-  (define gl  (new paddle-canvas%
-                   [parent win]))
+  (new paddle-frame%
+       ;; Child field
+       ;; stop is a parameter...
+       ;; Parent fields
+       [label "paddle gl"]
+       [min-width  (get-global 'frame-width)]
+       [min-height (get-global 'frame-height)]
+       [x (- screen-x (get-global 'frame-width) 50)]
+       [y 50]
+       ))
 
-  (printf "Running setup.~n")            
-  (setup)
-  (collect-garbage 'major)
-  (printf "Done with setup.~n")
-  
-  (define (draw-thread)
-    (thread (λ ()
-              (send win show #t)
-              (send gl on-paint)
-              (world-tick)
-              
+(define (make-canvas win)
+  (new paddle-canvas%
+       ;; Child fields
+       ;; [stop stop]
+       ;; Parent fields
+       [world-draw world-draw]
+       [parent win]))
+
+(define (draw-thread win gl go)
+    (thread (λ ()              
               (let loop ()
-
-                ;; (printf "About to run (go)~n")
                 (build-quadtree)
                 (go)
                 (send gl on-paint)
                 (world-tick)
-                
-
                 ;; Rinse and repeat
                 (loop)
                 ))))
 
-  ;; This actually spawns the draw thread...
-  
-  (add-thread-to-kill! (draw-thread))
-  (stop (λ ()
-          (map kill-thread threads-to-kill)
-          )))
+(define (world-setup user-setup)
+  ;; Initialize the global variables table with
+  ;; some reasonable defaults... if there aren't any
+  ;; values there, that is.
+  (when (or (not (get-global 'world-columns))
+            (not (get-global 'frame-width)))
+    (global-defaults))  
+  (define win (make-frame))
+  (define gl  (make-canvas win))
+  (user-setup)
+  (collect-garbage 'major)
+  (send win show #t)
+  (send gl on-paint)
+  (world-tick)
+  (values win gl))
 
+;; ------------------------------------------------------
+;; GL DRAWING FUNCTIONS
+
+(define (world-draw)
+  (setup-gl-draw)
+  ;; (draw-patches)
+  (draw-agents)
+  )
 
 (define (setup-gl-draw)
+  (define rows (get-global 'world-rows))
+  (define cols (get-global 'world-columns))
+  ;; (printf "gl: ~ax~a~n" rows cols)
+  
   (glClearColor 0.0 0.0 0.0 0.0)
   (glClear (bitwise-ior GL_COLOR_BUFFER_BIT GL_DEPTH_BUFFER_BIT))
 
@@ -97,10 +149,9 @@
   (glMatrixMode GL_PROJECTION)
   (glLoadIdentity)
   ;; glOrtho(0.0, 50.0, 0.0, 50.0, -1.0, 1.0);
-  (glOrtho 0.0 (get-global 'world-rows) 0.0 (get-global 'world-columns) -1.0 1.0)
+  (glOrtho 0.0 rows 0.0 cols -1.0 1.0)
   (glMatrixMode GL_MODELVIEW)
   (glLoadIdentity))
-
 
 (define (draw-agents)  
   (for ([(plural as) agentsets])
@@ -112,28 +163,3 @@
             ))))
     ))
 
-(define (world-draw)
-  (setup-gl-draw)
-  ;; (draw-patches)
-  (draw-agents)
-  )
-
-(define paddle-canvas%
-  (class* canvas% ()
-    (inherit with-gl-context swap-gl-buffers)
-    (define/override (on-paint)
-      (with-gl-context (λ ()
-                         (world-draw)
-                         (swap-gl-buffers)
-                         )))
-    (define/override (on-size width height)
-      (with-gl-context (λ() (glViewport 0 0 width height) (on-paint))))
-    (super-instantiate () (style '(gl)))))
-
-(define paddle-frame%
-  (class frame%
-    (define/augment (on-close)
-      (printf "The sky is falling!~n")
-      (send this show false)
-      ((stop)))
-    (super-new)))

@@ -10,6 +10,15 @@
 (define (set-max-agents! n)
   (set! DEFAULT-AGENTSET-SIZE n))
 
+;; AGENTSETS
+;; plural-symbol -> vector
+;; eg.
+;; 'turtles -> (vector (vector ...) ...)
+(define agentsets (make-hash))
+;; Metadata is two deep. Every breed has its own metadata.
+;; plural -> (hash (key value) ...)
+(define agentsets-meta (make-hash))
+
 ;; STATE PARAMETERS
 ;; There are several macros that pass state through these parameters.
 ;; For example, (ask ...) sets the (current-agent) as a matter of course.
@@ -33,11 +42,13 @@
 ;; DEFAULT GLOBALS
 ;; There's a few values that are good to have in place at world
 ;; startup. These seem to be the set of necessary globals.
-(set-global! 'world-columns 20)
-(set-global! 'world-rows    20)
-(set-global! 'frame-width  400)
-(set-global! 'frame-height 400)
-(set-global! 'ticker 0)
+(define (global-defaults)
+  (printf "Setting global defaults.~n")
+  (set-global! 'world-columns 20)
+  (set-global! 'world-rows    20)
+  (set-global! 'frame-width  400)
+  (set-global! 'frame-height 400)
+  (set-global! 'ticker 0))
 
 ;; MAPPING COORDINATES TO PATCH-SPACE
 ;; The patches are a linear vector. Given an [x,y] coordinate,
@@ -70,3 +81,26 @@
 (define (add-thread-to-kill! t)
   (set! threads-to-kill (cons t threads-to-kill)))
 (define stop (make-parameter false))
+
+;; CLEANING UP
+;; Is there a way to get the garbage collector to free everything when I
+;; stop a world? I'll try nuking the globals. Hopefully, the GC can then
+;; free up everything they're referencing. Currently, I have a lot of things
+;; hanging around in memory, even after killing the execution threads.
+(define (clear-global-structures)
+  (printf "Cleaning up.~n")
+  ;; Wipe the globals table
+  (set! globals (make-hash))
+  (global-defaults)
+  ;; Clear the parameters
+  (current-agent false)
+  (current-patch false)
+  (current-agentset false)
+  (current-quadtree false)
+  ;; Clear dirty bits for the patches
+  (set! dirty-bits (make-hash))
+  ;; Wipe all the agentsets
+  (set! agentsets (make-hash))
+  (set! agentsets-meta (make-hash))
+  )
+  
