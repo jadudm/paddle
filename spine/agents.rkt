@@ -99,7 +99,7 @@
      )
    
    (cond
-     [rns new-set]
+     [rns (hash-values new-set)]
      [else (void)])
    )
 

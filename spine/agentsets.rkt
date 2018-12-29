@@ -7,6 +7,7 @@
                [insert-into-agentset!/hash    insert-into-agentset!]
                [compact-agentset/hash         compact-agentset]
                [agentset->list/hash           agentset->list]
+               [remove-agent!/hash            remove-agent!]
                )
   (contract-out
    [make-empty-agentset/hash        (-> hash?)]
@@ -16,6 +17,7 @@
    [compact-agentset/vector         (-> symbol? any)]
    [compact-agentset/hash           (-> symbol? any)]
    [agentset->list/hash             (-> hash? list?)]
+   [remove-agent!/hash              (-> hash? number? any)]
    ))
  (contract-out
   [get-max-id                 (-> symbol? number?)]
@@ -40,6 +42,12 @@
 
 (define (get-agent/hash set ndx)
   (hash-ref set ndx false))
+
+(define (get-agent/vector set ndx)
+  (vector-ref set ndx))
+
+(define (remove-agent!/hash set id)
+  (hash-remove! set id))
 
 ;; FIXME
 ;; Agentsets should be lists of numbers, not lists

@@ -105,6 +105,7 @@
     ;; Any sheep found are snaks for the wolves.
     (define snaks (sniff sheeps WOLF-EAT-RADIUS))
     (define this-wolf (current-agent))
+    ;; (printf "snaks: ~a~n" snaks)
     (ask (one-of snaks)
       (define this-sheep (current-agent))
       ;;c(printf "Eating ~a~n" (get this-sheep sheep-id))

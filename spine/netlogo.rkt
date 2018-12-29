@@ -24,6 +24,8 @@
 (define-syntax-rule (ask as body ...)
   (let ()
     (parameterize ([current-agentset (get-agents as)])
+      ;; FIXME
+      ;; Leaky abstraction on agentsets.
       (for ([agent (get-agents as)])
         (when (vector? agent)
           (parameterize ([current-agent agent])
@@ -65,9 +67,9 @@
      (define plural (vector-ref ca agent-plural))
      ;; We just set that agent to false, and they go away.
      ;; I think.
-     (vector-set! (hash-ref agentsets plural)
-                  (vector-ref ca agent-id)
-                  false)
+     (remove-agent! (hash-ref agentsets plural)
+                    (vector-ref ca agent-id)
+                    )
      ;; Update the quadtree when things die, so they
      ;; can't interact again.
      ;; (build-quadtree)
@@ -127,10 +129,26 @@
 
 
 (module+ test
+  (require rackunit)
+  
   (make-world 10 100)
   (create-breed turtle turtles)
   (create turtles 5)
   ;; (printf "~a~n" (get-agentset turtles))
+  (define found-set (make-hash))
   (ask turtles
-    (printf "id: ~a~n" (vector-ref (current-agent) agent-id)))
+    (define id (vector-ref (current-agent) agent-id))
+    ;; (printf "id: ~a~n" id)
+    (hash-set! found-set id true)
+    )
+  (check-equal? (hash-keys found-set) '(0 1 2 3 4))
+  
+  ;; (printf "----~n")
+  (set! found-set (make-hash))
+  (ask (where turtles (> (vector-ref (current-agent) agent-id) 2))
+    (define id (vector-ref (current-agent) agent-id))
+    ;; (printf "id: ~a~n" id)
+    (hash-set! found-set id true)
+    )
+  (check-equal? (hash-keys found-set) '(3 4))
   )
