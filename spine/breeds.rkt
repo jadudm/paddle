@@ -32,10 +32,12 @@
                       
      #`(begin
          (define plural (quote plural))
+         
          ;; (define singular (quote singular))
          ;; FIXME: Start small for testing.
          (set-agentset! (quote plural) (make-vector DEFAULT-AGENTSET-SIZE false))
          (init-meta (quote plural))
+         (set-max! (quote plural) DEFAULT-AGENTSET-SIZE)
          ;; (printf "asm: ~a~n" agentsets-meta)
          (set-agentset-meta! (quote plural)
                              (combine-to-symbol (quote singular) '-next-index) 0)
@@ -51,7 +53,6 @@
          ))
      ]))
 
-(create-breed chicken chickens #:have wings)
 
 (module+ test
   (require rackunit)

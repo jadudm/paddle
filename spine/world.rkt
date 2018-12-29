@@ -53,28 +53,6 @@
 ;; ----------------------------------------------------------------
 ;; INTERNAL
 
-;; Used to build a quadtree of all of the agents on every world draw.
-;; FIXME
-;; https://bitbucket.org/jadudm/paddle/issues/8/should-quadtree-building-be-always-or
-(define (build-quadtree)
-  (define qt (new quadtree%
-                  (boundary (make-rect 0 0
-                                       (get-global 'world-columns)
-                                       (get-global 'world-rows)))
-                  (capacity 4)))
-  ;; FIXME
-  ;; https://bitbucket.org/jadudm/paddle/issues/6/quadtree-has-not-been-tested-with-multiple
-  (for ([(plural as) agentsets])
-    (for ([a as])
-      (when a
-        ;; Don't insert ourselves.
-        (send qt insert (make-point (vector-ref a agent-x)
-                                    (vector-ref a agent-y)
-                                    a)))))
-  (current-quadtree qt)
-  )
-  
-
 (define (make-frame)
   (define-values (screen-x screen-y)
     (get-display-size))

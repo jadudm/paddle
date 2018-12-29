@@ -14,20 +14,6 @@
          agent-direction
          )
 
-(require (for-syntax syntax/parse racket/syntax racket/list "types.rkt"))
-(define-syntax (create-accessors stx)
-  (syntax-parse stx
-    [(_ca)
-     (with-syntax ([(id ...)
-                    (for/list ([o agent-base-fields])
-                      (format-id stx "agent-~a" o))]
-                    [(nums ...) (range (length agent-base-fields))]
-                   )
-       #`(begin (define id nums) ...
-                (provide id) ...))]))
-
-(create-accessors)
-
 (define (make-default-agent sing plur ndx)
   (define x (/ (get-global 'world-columns) 2))
   (define y (/ (get-global 'world-rows) 2))
@@ -53,28 +39,41 @@
   (define singular (get-agentset-meta plural-sym 'singular))
   (define sym (combine-to-symbol singular '-next-index))
   (define starting-ndx (get-agentset-meta plural-sym sym))
-  (define new-set (make-vector 0))
-  (when rns
-    (set! new-set (make-vector num)))
-  
-  (for ([ndx (range starting-ndx (+ num starting-ndx))])
-    ;; (printf "Creating agent: ~a~n" ndx)
-    (let ([agent (make-default-agent singular plural-sym ndx)]
-          [asvec (get-agentset plural-sym)])
-      (vector-set! asvec ndx agent)
-      (when rns
-        (vector-set! new-set (- ndx starting-ndx) agent))
-      )
-    (set-agentset-meta! plural-sym (combine-to-symbol singular '-next-index) (+ num starting-ndx))
-    (set-agentset-meta! plural-sym
-                        'default-drawing-function
-                        draw-agent)
-    )
 
-  (cond
-    [rns (vector->list new-set)]
-    [else (void)])
-  )
+  (unless (>= (+ num starting-ndx) MAX-AGENTSET-SIZE)
+    ;; Try compacting if necessary
+    ;; I have now implemented memory management...
+    ;; This is bad.
+    (when (>= (+ num starting-ndx) (* (get-max plural-sym) 0.7))
+      (compact-agentset plural-sym)
+      (set! starting-ndx (get-agentset-meta plural-sym sym)))
+
+    (when (>= (+ num starting-ndx) (* (get-max plural-sym) 0.9))
+      (set-max! plural-sym (* 2 (get-max plural-sym)))
+      (extend-agentset plural-sym))
+
+    (define new-set (make-vector 0))
+    (when rns
+      (set! new-set (make-vector num)))
+  
+    (for ([ndx (range starting-ndx (+ num starting-ndx))])
+      ;; (printf "Creating agent: ~a~n" ndx)
+      (let ([agent (make-default-agent singular plural-sym ndx)]
+            [asvec (get-agentset plural-sym)])
+        (vector-set! asvec ndx agent)
+        (when rns
+          (vector-set! new-set (- ndx starting-ndx) agent))
+        )
+      (set-agentset-meta! plural-sym (combine-to-symbol singular '-next-index) (+ num starting-ndx))
+      (set-agentset-meta! plural-sym
+                          'default-drawing-function
+                          draw-agent)
+      )
+
+    (cond
+      [rns (vector->list new-set)]
+      [else (void)])
+    ))
 
 (define (hatch plural-sym num)
   (create plural-sym num #:return-new-set true))
@@ -119,14 +118,14 @@
     (glEnd)
 
     #;(begin
-      (glBegin GL_QUADS)
-      (glColor3ub 255 255 255)
-      (glVertex3f (- turtle-x .1) (- turtle-y .1) 0.2)
-      (glVertex3f (- turtle-x .1) (+ turtle-y .1) 0.2)
-      (glVertex3f (+ turtle-x .1) (+ turtle-y .1) 0.2)
-      (glVertex3f (+ turtle-x .1) (- turtle-y .1) 0.2)
-      (glColor3ub 0 0 0)
-      (glEnd))
+        (glBegin GL_QUADS)
+        (glColor3ub 255 255 255)
+        (glVertex3f (- turtle-x .1) (- turtle-y .1) 0.2)
+        (glVertex3f (- turtle-x .1) (+ turtle-y .1) 0.2)
+        (glVertex3f (+ turtle-x .1) (+ turtle-y .1) 0.2)
+        (glVertex3f (+ turtle-x .1) (- turtle-y .1) 0.2)
+        (glColor3ub 0 0 0)
+        (glEnd))
     
-      (glPopMatrix)
+    (glPopMatrix)
     ))

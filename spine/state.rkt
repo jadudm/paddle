@@ -1,14 +1,15 @@
 #lang racket
 
 (provide (all-defined-out))
+(require "quadtree.rkt"
+         "types.rkt")
 
 ;; MAX AGENTS
 ;; I'm going to cap the number of agents that can be created
 ;; at any given time. This is both a conservative number as
 ;; well as a performance-inspired number.
-(define DEFAULT-AGENTSET-SIZE 5000)
-(define (set-max-agents! n)
-  (set! DEFAULT-AGENTSET-SIZE n))
+(define DEFAULT-AGENTSET-SIZE 1000)
+(define MAX-AGENTSET-SIZE 8000)
 
 ;; AGENTSETS
 ;; plural-symbol -> vector
@@ -18,6 +19,29 @@
 ;; Metadata is two deep. Every breed has its own metadata.
 ;; plural -> (hash (key value) ...)
 (define agentsets-meta (make-hash))
+
+;; For setting and getting the agentset vectors.
+(define-values (get-agentset set-agentset!)
+  (values
+   (λ (k)   (hash-ref  agentsets k false))
+   (λ (k v) (hash-set! agentsets k v))))
+
+;; For setting and getting metadata about a given breed.
+(define-values (get-agentset-meta set-agentset-meta!)
+  (values
+   (λ (plural k)   (hash-ref  (hash-ref agentsets-meta plural) k false))
+   (λ (plural k v) (hash-set! (hash-ref agentsets-meta plural) k v))))
+
+;; Initialize the metadata. Speciically, create an empty
+;; hash table for a new breed. Used in the create-breed macro.
+(define (init-meta plural)
+  (hash-set! agentsets-meta plural (make-hash)))
+
+(define-values (get-max set-max!)
+  (values
+   (λ (plural)   (get-agentset-meta  plural 'max-agents))
+   (λ (plural n) (set-agentset-meta! plural 'max-agents n))))
+   
 
 ;; STATE PARAMETERS
 ;; There are several macros that pass state through these parameters.
@@ -102,5 +126,29 @@
   ;; Wipe all the agentsets
   (set! agentsets (make-hash))
   (set! agentsets-meta (make-hash))
+  )
+
+
+;; QUADTREE
+;; This gets touched from multiple places.
+;; Used to build a quadtree of all of the agents on every world draw.
+;; FIXME
+;; https://bitbucket.org/jadudm/paddle/issues/8/should-quadtree-building-be-always-or
+(define (build-quadtree)
+  (define qt (new quadtree%
+                  (boundary (make-rect 0 0
+                                       (get-global 'world-columns)
+                                       (get-global 'world-rows)))
+                  (capacity 4)))
+  ;; FIXME
+  ;; https://bitbucket.org/jadudm/paddle/issues/6/quadtree-has-not-been-tested-with-multiple
+  (for ([(plural as) agentsets])
+    (for ([a as])
+      (when a
+        ;; Don't insert ourselves.
+        (send qt insert (make-point (vector-ref a agent-x)
+                                    (vector-ref a agent-y)
+                                    a)))))
+  (current-quadtree qt)
   )
   

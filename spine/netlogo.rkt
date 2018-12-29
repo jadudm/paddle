@@ -7,6 +7,7 @@
          "world.rkt"
          "util.rkt"
          "quadtree.rkt"
+         "types.rkt"
          )
 (require (for-syntax syntax/parse))
 
@@ -66,7 +67,16 @@
      ;; I think.
      (vector-set! (hash-ref agentsets plural)
                   (vector-ref ca agent-id)
-                  false)]))
+                  false)
+     ;; Update the quadtree when things die, so they
+     ;; can't interact again.
+     ;; (build-quadtree)
+     (send (current-quadtree)
+           remove!
+           (make-point (vector-ref ca agent-x)
+                       (vector-ref ca agent-y)
+                       ca))
+     ]))
    
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Movement

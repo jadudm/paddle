@@ -1,6 +1,7 @@
 #lang racket
 
 (provide quadtree% make-rect make-point)
+(require "types.rkt")
 
 ;; This abstraction is unnecessary, because
 ;; agents all carry their x/y data with them.
@@ -106,6 +107,26 @@
              (send se insert point)
              (send sw insert point))]))
 
+    (define/public (remove! point)
+      (cond
+        [(not (contains? point boundary))
+         false]
+        [else
+         (set! points
+               (filter  (λ (p)
+                          (define agent-here (vector-ref (vector-ref p point-data) agent-id))
+                          (define rem-agent  (vector-ref (vector-ref point point-data) agent-id))
+                          (not (= agent-here rem-agent)))
+                        points))
+         
+         (when divided?
+           (send ne remove! point)
+           (send nw remove! point)
+           (send se remove! point)
+           (send sw remove! point))]
+        ))
+        
+    
     (define/public (query range)
       (cond
         [(not (intersects? range boundary)) empty]
@@ -136,12 +157,14 @@
   (require rackunit)
   
   (define qt (new quadtree%
-                  (boundary (make-rect 0 0 100 100))
+                  (boundary (make-rect 0 0 10 10))
                   (capacity 4)))
-  (for ([diag 100])
+  (for ([diag 10])
     (define x diag)
     (define y diag)
-    (send qt insert (make-point x y '_))
+
+    ;; Need to insert fake agents...
+    (send qt insert (make-point x y (vector 0 0 diag diag)))
     )
 
   (define (set-equal? v1)
@@ -152,28 +175,39 @@
                        v2))
               v1)))
   
-  (check-pred (set-equal? '(#(0 0 _)
-                            #(1 1 _)
-                            #(2 2 _)
-                            #(3 3 _)
-                            #(4 4 _)
-                            #(5 5 _)))
+  (check-pred (set-equal? '(#(0 0 3 3)
+                            #(0 0 2 2)
+                            #(0 0 1 1)
+                            #(0 0 0 0)
+                            #(0 0 5 5)
+                            #(0 0 4 4)
+                            ))
               (send qt query
                     (make-rect 0 0 5 5)
                     ))
-  (check-pred (set-equal?
-               '(#(3 3 _) #(2 2 _) #(1 1 _) #(0 0 _)
-                          #(7 7 _) #(6 6 _) #(5 5 _)
-                          #(4 4 _) #(10 10 _) #(9 9 _)
-                          #(8 8 _)))
+  (check-pred (set-equal? '(#(0 0 3 3)
+                            #(0 0 2 2)
+                            #(0 0 1 1)
+                            #(0 0 0 0)
+                            #(0 0 7 7)
+                            #(0 0 6 6)
+                            #(0 0 5 5)
+                            #(0 0 4 4)
+                            #(0 0 9 9)
+                            #(0 0 8 8)))
               (send qt query
                     (make-rect 5 5 5 5)))
-
-  (check-pred (set-equal? '(#(11 11 _)
-                            #(10 10 _)
-                            #(9 9 _)))
+              
+  (check-pred (set-equal? '(#(0 0 9 9)))
               (send qt query
                     (make-rect 10 10 1 1)
+                    ))
+
+  ;; fake an agent... breed plural id pid x y ...
+  (send qt remove! (make-point 9 9 (vector 'x 'x 9 'x)))
+  (check-pred (set-equal? '(#(0 0 8 8)))
+              (send qt query
+                    (make-rect 10 10 2 2)
                     ))
 
   
