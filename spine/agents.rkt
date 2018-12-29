@@ -132,7 +132,7 @@
     (glPushMatrix)
     
     (glTranslatef turtle-x turtle-y 0)
-    (glRotatef (vector-ref a agent-direction) 0 0 1)
+    (glRotatef (modulo (- (vector-ref a agent-direction) 90) 360) 0 0 1)
     (glTranslatef (- turtle-x) (- turtle-y) 0)
           
     (glBegin GL_TRIANGLES)

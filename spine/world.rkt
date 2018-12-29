@@ -3,6 +3,7 @@
 (provide (contract-out
           [make-world                    (-> number? number? any)]
           [run-world                     (-> procedure? procedure? any)]
+          [draw-world                    (-> any)]
           ))
 
 ;; Libraries in the Racket distribution
@@ -75,6 +76,8 @@
        [world-draw world-draw]
        [parent win]))
 
+(define draw-world (make-parameter false))
+
 (define (draw-thread win gl go)
     (thread (λ ()              
               (let loop ()
@@ -95,6 +98,7 @@
     (global-defaults))  
   (define win (make-frame))
   (define gl  (make-canvas win))
+  (draw-world (thunk (send gl on-paint)))
   (user-setup)
   (collect-garbage 'major)
   (send win show #t)

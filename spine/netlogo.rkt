@@ -46,6 +46,10 @@
                                distance distance))))
     new-as))
 
+
+(define (any? as)
+  (> (length (get-agents as)) 0))
+
 ;; We need a syntax so that the expression will be
 ;; passed through. However, all we need to do is filter over the
 ;; agents provided, and return the resulting list.
@@ -85,7 +89,7 @@
 (define pi-conv (/ pi 180))
 
 (define (offset x y direction magnitude)
-  (define dir (* (+ direction 90) pi-conv))
+  (define dir (* direction pi-conv))
   (define dy (* magnitude (sin dir)))
   (define dx (* magnitude (cos dir)))
   (values (+ x dx) (+ y dy)))
