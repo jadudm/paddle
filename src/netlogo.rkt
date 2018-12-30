@@ -21,16 +21,24 @@
     ;; To be decided.
     [else as]))
 
-(define-syntax-rule (ask as body ...)
-  (let ()
-    (parameterize ([current-agentset (get-agents as)])
-      ;; FIXME
-      ;; Leaky abstraction on agentsets.
-      (for ([agent (get-agents as)])
-        (when (vector? agent)
-          (parameterize ([current-agent agent])
-            body ...))
-        ))))
+(define-syntax (ask stx)
+  (syntax-parse stx
+    [(_ask (~datum patches) bodies:expr ...)
+     #`(for ([i (range (vector-length (get-global 'the-world)))])
+         (parameterize ([current-patch i])
+           bodies ...))]
+    
+    [(_ask as bodies:expr ...)
+     #`(let ()
+         (parameterize ([current-agentset (get-agents as)])
+           ;; FIXME
+           ;; Leaky abstraction on agentsets.
+           (for ([agent (get-agents as)])
+             (when (vector? agent)
+               (parameterize ([current-agent agent])
+                 bodies ...))
+             )))]
+    ))
 
 (define (sniff plural distance)
   (when (vector? (current-agent))
@@ -107,18 +115,6 @@
   (vector-set! (current-agent)
        agent-y
        (wrap new-y (get-global 'world-rows)))
-
-  #;(vector-set! (current-agent)
-       prev-patch-id
-       (get patch-id))
-  
-  #;(vector-set! (current-agent)
-       patch-id
-       (->patch (get xcor) (get ycor)))
-
-  ;; For tracking agent locations.
-  ;; (update-backing! (current-agent))
-
   )
 
 (define (right d)

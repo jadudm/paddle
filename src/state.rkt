@@ -79,6 +79,7 @@
 ;; this function maps you through to the vector index.
 (define (->pid x y)
   (+ (* (get-global 'world-rows) y) x))
+
 ;; DIRTY PATCHES
 ;; I only draw patches that are dirty. Tracking dirty state happens
 ;; in a hash-table, for lookup speed.

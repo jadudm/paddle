@@ -1,7 +1,9 @@
 #lang racket
 
 (provide (contract-out
-          [make-world                    (-> number? number? any)]
+          [make-world                    (case->
+                                          (-> number? number? any)
+                                          (-> number? number? number? number? any))]
           [run-world                     (-> procedure? procedure? any)]
           [draw-world                    (-> any)]
           ))
@@ -15,7 +17,9 @@
          "agentsets.rkt"
          "gui.rkt"
          "quadtree.rkt"
-         "state.rkt")
+         "state.rkt"
+         "get-set.rkt"
+         "types.rkt")
 
 ;; ------------------------------------------------------------
 ;; EXTERNAL
@@ -23,14 +27,23 @@
 ;; Sets the global parameters for the world.
 ;; These parameters are used by the drawing functions
 ;; and patch creation. 
-(define (make-world cols pixels)
-  ;; (printf "Making world c ~a p ~a~n" cols pixels)
-  (set-global! 'world-columns cols)
-  (set-global! 'world-rows cols)
-  (set-global! 'frame-width pixels)
-  (set-global! 'frame-height pixels)
-  (set-global! 'ticker 0)
-  )
+(define make-world
+  (case-lambda
+    [(cols pixels)
+     ;; (printf "Making world c ~a p ~a~n" cols pixels)
+     (set-global! 'world-columns cols)
+     (set-global! 'world-rows cols)
+     (set-global! 'frame-width pixels)
+     (set-global! 'frame-height pixels)
+     (set-global! 'ticker 0)
+     ]
+    [(cols rows width height)
+     (set-global! 'world-columns cols)
+     (set-global! 'world-rows rows)
+     (set-global! 'frame-width width)
+     (set-global! 'frame-height height)
+     (set-global! 'ticker 0)]
+    ))
 
 ;; RUN-WORLD
 ;; This runs everything.
@@ -111,7 +124,7 @@
 
 (define (world-draw)
   (setup-gl-draw)
-  ;; (draw-patches)
+  (draw-patches)
   (draw-agents)
   )
 
@@ -147,3 +160,33 @@
             ))))
     ))
 
+(define (get-patch-coordinate pid)
+  (values (quotient  pid (get-global 'world-columns))
+          (remainder pid (get-global 'world-rows))))
+
+(define (draw-patches)
+  (define side 1)
+  ;;(printf "Trying to draw patches.~n")
+  ;; I need to go through and draw the patches that are dirty.
+  ;; These are in a vector.
+  (for ([pid (get-dirty-patch-ids)])
+    (current-patch pid)
+    (define-values (coordinate-x coordinate-y)
+      (get-patch-coordinate pid))
+    (define col coordinate-x)
+    (define row coordinate-y)
+    (begin
+      (glBegin GL_QUADS)
+      (define pcolor (get patch color))
+      (define r (color-red pcolor))
+      (define g (color-green pcolor))
+      (define b (color-blue pcolor))
+        
+      (glColor3ub r g b)
+      (glVertex3f (+ 0 (* side row)) (+ 0 (* col side)) -0.1)
+      (glVertex3f (+ side (* side row)) (+ 0 (* col side)) -0.1)
+      (glVertex3f (+ side (* side row)) (+ side (* col side)) -0.1)
+      (glVertex3f (+ 0 (* side row)) (+ side (* col side)) -0.1)
+      (glEnd)
+      )
+    ))

@@ -13,6 +13,8 @@
 (define (create-patches)
   (define rows (get-global 'world-rows))
   (define cols (get-global 'world-columns))
+  ;; (printf "patches ~a x ~a~n" rows cols)
+  
   (set-global! 'the-world (make-vector (* rows cols) false))
   ;; Initialize all of the patches in the microworld.
   (for ([col (range rows)])
@@ -28,5 +30,5 @@
       (set-patch-field-no-dirty! pid 'pid pid)
       (set-patch-field-no-dirty! pid 'patch-x col)
       (set-patch-field-no-dirty! pid 'patch-y row)
-      (set-patch-field-no-dirty! pid 'patch-color (color 0 0 0))
+      (set-patch-field-no-dirty! pid 'color (color 0 0 0))
       )))

@@ -70,7 +70,7 @@
   (case-lambda
     [(x y) (clean-patch! (* (exact-floor x) (exact-floor y)))]
     [(pid) (when (hash-has-key? dirty-bits pid)
-             (set-patch-field-no-dirty! pid 'pcolor (color 0 0 0))
+             (set-patch-field-no-dirty! pid 'color (color 0 0 0))
              (hash-remove! dirty-bits pid))]))
 
 (define patch-dirty?
