@@ -10,7 +10,9 @@
          "src/get-set.rkt"
          "src/util.rkt"
          "src/netlogo.rkt"
-         "src/log.rkt" "src/plot.rkt"
+         "src/log.rkt"
+         "src/plot.rkt"
+         "src/patches.rkt"
          )
 
 (provide (all-from-out
@@ -24,5 +26,7 @@
           "src/get-set.rkt"
           "src/util.rkt"
           "src/netlogo.rkt"
-          "src/log.rkt" "src/plot.rkt"
+          "src/log.rkt"
+          "src/plot.rkt"
+          "src/patches.rkt"
           ))
