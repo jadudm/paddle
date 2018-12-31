@@ -1,5 +1,11 @@
 #lang racket
-(provide (all-defined-out))
+(provide (all-defined-out)
+         (rename-out
+          [move forward]
+          [move fd]
+          [right rt]
+          [left lt])
+         )
 (require "agentsets.rkt"
          "agents.rkt"
          "breeds.rkt"
@@ -115,7 +121,15 @@
   (vector-set! (current-agent)
        agent-y
        (wrap new-y (get-global 'world-rows)))
+  (vector-set! (current-agent)
+               agent-pid
+               (->pid
+                ;; Need to floor this, or we can't index into
+                ;; the patch array...
+                (exact-floor (vector-ref (current-agent) agent-x))
+                (exact-floor (vector-ref (current-agent) agent-y))))
   )
+
 
 (define (right d)
   (vector-set! (current-agent)

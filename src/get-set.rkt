@@ -14,7 +14,15 @@
      #`(get-global (quote k))]
 
     [(_get (~datum patch) k)
+     ;; FIXME
+     ;; Should patches be quoted, or literal?
      #`(get-patch-field (current-patch) (quote k))]
+
+    [(_get (~datum patch-here) k:id)
+     (with-syntax ([apid (format-id stx "agent-pid")])
+       #`(let ()
+           ;; (printf "a: ~a~n" (current-agent))
+           (get-patch-field (vector-ref (current-agent) apid) (quote k))))]
     
     [(_get k)
      (with-syntax ([field (format-id stx "agent-~a" #'k)])
@@ -34,25 +42,27 @@
      #`(hash-set! globals k expr)]
 
     [(_set (~datum patch) k:id expr:expr)
+     ;; FIXME
+     ;; Should patches be quoted, or literal?
      #`(set-patch-field! (current-patch) (quote k) expr)]
+
+    [(_set (~datum patch-here) k:id expr:expr)
+     (with-syntax ([apid (format-id stx "agent-pid")])
+       #`(set-patch-field! (vector-ref (current-agent) apid) (quote k) expr))]
     
     [(_set k expr)
      (with-syntax ([field (format-id stx "agent-~a" #'k)])
        #`(begin
            #;(printf "Setting agent ~a field ~a to ~a~n"
-                   (vector-ref (current-agent) 2)
-                   k
+                   (current-agent)
+                   (quote k)
                    expr)
            ;; (sleep 1)
-           (vector-set! (current-agent)
-                        k
-                        expr)))]
+           (vector-set! (current-agent) k expr)))]
      
     [(_set a k expr)
      (with-syntax ([field (format-id stx "agent-~a" #'k)])
-       #`(vector-set! a
-                      k
-                      expr))]
+       #`(vector-set! a k expr))]
     ))
 
 
