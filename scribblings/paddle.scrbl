@@ -104,3 +104,4 @@ Finally, the @racketidfont{setup} and @racketidfont{go} functions are handed off
 
 This package is under active development. Conversation and collaboration are welcome. Next steps include integrating plotting and logging, additional interface forms, and completing documentation. As of January 1, 2019, things are stabilizing, and documentation will follow. Currently, I am implementing examples so as to find where the environment does, and does not, work as a microworld.
 
+I am currently making notes and tracking "to do" type items through a combination of the GitHub ticket queue and a @link["https://trello.com/b/BYmiCIyl/paddle"]{Trello board}. If you're interested in contributing (examples, core language/API, optimizations), please feel free to reach out via email, make a pull request, etc. 
