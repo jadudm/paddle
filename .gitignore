@@ -2,3 +2,5 @@
 compiled/
 .DS_Store
 doc/
+examples/*sqlite
+examples/*png
