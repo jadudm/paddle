@@ -21,14 +21,14 @@ Here is an example of a paddle that randomly distributes turtles around the worl
 
 #lang racket
 (require paddle)
-(make-world 100)
+(make-world 100 600)
 
 (create-breed turtle turtles)
 (create turtles 100)
 
 (define (setup)
   (ask turtles
-      (set turtle-x (random (get global world-cols)))
+      (set turtle-x (random (get global world-columns)))
       (set turtle-y (random (get global world-rows)))
       (set turtle-direction (random 360))
   ))
@@ -36,9 +36,10 @@ Here is an example of a paddle that randomly distributes turtles around the worl
 (define (go)
   (ask turtles
     (move 1))
+  ;; Slow the turtles down!
+  (sleep (/ 1 20))
   )
 
-(sleep 0.1)
 (run-world setup go)
 }|
 
@@ -54,7 +55,7 @@ If you want to create a Paddle world, you need to first require the @racketidfon
 
 Next, we need to create the world. The world is made up of @emph{patches}, which can be thought of like a checkerboard. Turtles wander over these patches, and can (if they wish) interact with those patches.
 
-@racketblock[(make-world 100)]
+@racketblock[(make-world 100 600)]
 
 @racketidfont{make-world} is a function that, in its simplest form, takes one parameter. This defines the number of columns and rows of patches in the world---or, the @emph{x} and @emph{y} dimensions of the world. With this command, I've said I want a world with 100x100 patches, and it will be displayed in a 600x600 window.
 
@@ -78,7 +79,7 @@ To run our microworld, we need to provide two functions: @racketidfont{setup} an
 
 (define (setup)
   (ask turtles
-      (set xcor (random (get global world-cols)))
+      (set xcor (random (get global world-columns)))
       (set ycor (random (get global world-rows)))
       (set direction (random 360))
   ))
@@ -86,9 +87,9 @@ To run our microworld, we need to provide two functions: @racketidfont{setup} an
 (define (go)
   (ask turtles
     (move 1))
+  (sleep (/ 1 20))
   )
 
-(tick-pause (/ 1 30))
 (run-world setup go)
 ]
 @margin-note{The @racketidfont{set} and @racketidfont{get} forms are borrowed from NetLogo. @racketidfont{set} will set a value for the current agent that is being @racketidfont{ask}ed to do things. Likewise, when we say @racketidfont{get}, we will retrieve a value from the current agent. It is possible to set and retrieve values for a @racketidfont{patch} or for the @racketidfont{global} environment as well.}
@@ -97,10 +98,9 @@ The @racketidfont{setup} function @racketidfont{asks} all of the turtles to do t
 
 In @racketidfont{go}, I @racketidfont{ask} turtles to move forward one patch. (In a world that is 100x100, a move of 1 is 1/100th of the distance across the world.)
 
-Finally, the @racketidfont{setup} and @racketidfont{go} functions are handed off to the @racketidfont{run-world} function, which then does a bunch of work behind the scenes. Along the way, it runs the @racketidfont{setup} function once, and @racketidfont{go} function over-and-over, with a 1/30th of a second pause between runs, which is determined by @racketidfont{tick-pause}; leaving out the pause will let the simulation run as fast as possible.
+Finally, the @racketidfont{setup} and @racketidfont{go} functions are handed off to the @racketidfont{run-world} function, which then does a bunch of work behind the scenes. Along the way, it runs the @racketidfont{setup} function once, and @racketidfont{go} function over-and-over, with a 1/20th of a second pause between frames, which is determined by @racketidfont{sleep}; leaving out the pause will let the simulation run as fast as possible.
 
 @section{To Be Continued}
 
-This package is under active development. Conversation and collaboration are welcome. Next steps include integrating plotting and logging, additional interface forms, and completing documentation. (Documentation may come later, as I'm still exploring the system implementation itself.)
+This package is under active development. Conversation and collaboration are welcome. Next steps include integrating plotting and logging, additional interface forms, and completing documentation. As of January 1, 2019, things are stabilizing, and documentation will follow. Currently, I am implementing examples so as to find where the environment does, and does not, work as a microworld.
 
-Optimization will come; a quadtree or similar for agents (so as to optimize @racketidfont{sniff}) is a likely next step. Likewise, thinking about how the code is broken across forms, and deciding how best to test this world is also important for maintainability.
