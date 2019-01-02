@@ -102,11 +102,17 @@
 ;; Movement
 (define pi-conv (/ pi 180))
 
+(define (->rational v)
+  (cond
+    [(rational? v) v]
+    [else 0]))
+
 (define (offset x y direction magnitude)
   (define dir (* direction pi-conv))
   (define dy (* magnitude (sin dir)))
   (define dx (* magnitude (cos dir)))
-  (values (+ x dx) (+ y dy)))
+  (values (->rational (+ x dx))
+          (->rational (+ y dy))))
 
 
 (define (move magnitude)
@@ -115,6 +121,7 @@
     (offset (vector-ref (current-agent) agent-x)
             (vector-ref (current-agent) agent-y)
             direction magnitude))
+  
   (vector-set! (current-agent)
        agent-x
        (wrap new-x (get-global 'world-columns)))
