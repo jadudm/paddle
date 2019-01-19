@@ -14,14 +14,14 @@
      #`(get-global (quote k))]
 
     [(_get (~datum patch) k)
-     ;; FIXME
-     ;; Should patches be quoted, or literal?
      #`(get-patch-field (current-patch) (quote k))]
+
+    [(_get (~datum patch) p k)
+     #`(get-patch-field p (quote k))]
 
     [(_get (~datum patch-here) k:id)
      (with-syntax ([apid (format-id stx "agent-pid")])
        #`(let ()
-           ;; (printf "a: ~a~n" (current-agent))
            (get-patch-field (vector-ref (current-agent) apid) (quote k))))]
     
     [(_get k)
