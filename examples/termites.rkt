@@ -8,8 +8,8 @@
 
 (require paddle)
 
-(define RxC 200)
-(make-world RxC 800)
+(define RxC 100)
+(make-world RxC 600)
 (create-patches)
 
 (create-breed bug bugs #:have has-chip?)
@@ -24,7 +24,6 @@
 (define yellow  (color 255 255 0))
   
 (define (setup)
-  
   ;; Set some patches randomly to woodchips.
   (ask patches
     (when (< (random 100) density)
@@ -33,7 +32,6 @@
   (ask bugs
     (set bug-x (random RxC))
     (set bug-y (random RxC))
-    ;; Reddish Purplish Bugs
     (set bug-color white)
     (set bug-has-chip? false)
     )
@@ -59,7 +57,6 @@
      (wiggle)
      (search-for-chip)])
   )
-
 
 (define (find-new-pile)
   (when (not (equal? (get patch-here color) yellow))

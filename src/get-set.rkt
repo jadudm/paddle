@@ -6,7 +6,7 @@
          "util.rkt"
          )
 
-(require (for-syntax syntax/parse racket/syntax "agents.rkt"))
+(require (for-syntax syntax/parse racket/syntax "agents.rkt" "util.rkt"))
 
 (define-syntax (get stx)
   (syntax-parse stx
@@ -51,18 +51,22 @@
        #`(set-patch-field! (vector-ref (current-agent) apid) (quote k) expr))]
     
     [(_set k expr)
-     (with-syntax ([field (format-id stx "agent-~a" #'k)])
-       #`(begin
-           #;(printf "Setting agent ~a field ~a to ~a~n"
+     #`(begin
+         #;(printf "Setting agent ~a field ~a to ~a~n"
                    (current-agent)
                    (quote k)
                    expr)
-           ;; (sleep 1)
-           (vector-set! (current-agent) k expr)))]
+         (when (string-contains? (symbol->string (quote k)) "-direction")
+           #;(printf "\tPatching direction.~n")
+           (define-values (vx vy) (degrees->components expr))
+           (vector-set! (current-agent) agent-vx vx)
+           (vector-set! (current-agent) agent-vy vy)
+           #;(printf "\tvx: ~a~n\tvy: ~a~n" vx vy)
+           )
+         (vector-set! (current-agent) k expr))]
      
     [(_set a k expr)
-     (with-syntax ([field (format-id stx "agent-~a" #'k)])
-       #`(vector-set! a k expr))]
+     #`(vector-set! a k expr)]
     ))
 
 

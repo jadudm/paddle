@@ -107,46 +107,90 @@
     [(rational? v) v]
     [else 0]))
 
-(define (offset x y direction magnitude)
-  (define dir (* direction pi-conv))
-  (define dy (* magnitude (sin dir)))
-  (define dx (* magnitude (cos dir)))
-  (values (->rational (+ x dx))
-          (->rational (+ y dy))))
-
+(define edge-case (make-parameter 'wrap))
+(define-syntax-rule (set-edge-mode! type)
+  (edge-case (quote type)))
 
 (define (move magnitude)
-  (define direction (vector-ref (current-agent) agent-direction))
-  (define-values (new-x new-y)
-    (offset (vector-ref (current-agent) agent-x)
-            (vector-ref (current-agent) agent-y)
-            direction magnitude))
+  (define cur-x (vector-ref (current-agent) agent-x))
+  (define cur-y (vector-ref (current-agent) agent-y))
+  (define cur-vx (vector-ref (current-agent) agent-vx))
+  (define cur-vy (vector-ref (current-agent) agent-vy))
+  (define dx (* magnitude cur-vx))
+  (define dy (* magnitude cur-vy))
+  (define new-x (+ cur-x dx))
+  (define new-y (+ cur-y dy))
   
+  (define cols (get-global 'world-columns))
+  (define rows (get-global 'world-rows))
+
+  (case (edge-case)
+    [(wrap)
+     (vector-set! (current-agent)
+                  agent-x
+                  (wrap new-x cols))
+     (vector-set! (current-agent)
+                  agent-y
+                  (wrap new-y rows))]
+    [(bounce)
+     (cond
+       [(> new-x cols)
+        (vector-set! (current-agent) agent-x (- cols 0.001))
+        (vector-set! (current-agent) agent-vx (- cur-vx))]
+       [(< new-x 0)
+        (vector-set! (current-agent) agent-x 0.001)
+        (vector-set! (current-agent) agent-vx (- cur-vx))])
+
+     (cond
+       [(> new-y rows)
+        (vector-set! (current-agent) agent-y (- rows 0.001))
+        (vector-set! (current-agent) agent-vy (- cur-vy))]
+       [(< new-y 0)
+        (vector-set! (current-agent) agent-y 0.001)
+        (vector-set! (current-agent) agent-vy (- cur-vy))])
+     
+     (define cur-x2  (vector-ref (current-agent) agent-x ))
+     (define cur-y2  (vector-ref (current-agent) agent-y ))
+     (define cur-vx2 (vector-ref (current-agent) agent-vx))
+     (define cur-vy2 (vector-ref (current-agent) agent-vy))
+     
+     (vector-set! (current-agent) agent-direction (theta cur-vx2 cur-vy2))
+     
+     (define dx2 (* magnitude cur-vx2))
+     (define dy2 (* magnitude cur-vy2))
+     
+     (define new-x2 (+ cur-x2 dx2))
+     (define new-y2 (+ cur-y2 dy2))
+     
+     (vector-set! (current-agent) agent-x new-x2)
+     (vector-set! (current-agent) agent-y new-y2)] ;; end bounce
+    ) ;; End case
+
   (vector-set! (current-agent)
-       agent-x
-       (wrap new-x (get-global 'world-columns)))
-  (vector-set! (current-agent)
-       agent-y
-       (wrap new-y (get-global 'world-rows)))
-  (vector-set! (current-agent)
-               agent-pid
-               (->pid
-                ;; Need to floor this, or we can't index into
-                ;; the patch array...
-                (exact-floor (vector-ref (current-agent) agent-x))
-                (exact-floor (vector-ref (current-agent) agent-y))))
+                   agent-pid
+                   (->pid
+                    ;; Need to floor this, or we can't index into
+                    ;; the patch array...
+                    (exact-floor (vector-ref (current-agent) agent-x))
+                    (exact-floor (vector-ref (current-agent) agent-y))))
   )
 
 
 (define (right d)
-  (vector-set! (current-agent)
-               agent-direction
-               (+ (vector-ref (current-agent) agent-direction) d)))
+  (define new-d (- (vector-ref (current-agent) agent-direction) d))
+  (vector-set! (current-agent) agent-direction new-d)
+  (define-values (vx vy) (degrees->components new-d))
+  (vector-set! (current-agent) agent-vx vx)
+  (vector-set! (current-agent) agent-vy vy)
+  )
 
 (define (left d)
-  (vector-set! (current-agent)
-               agent-direction
-               (- (vector-ref (current-agent) agent-direction) d)))
+  (define new-d (+ (vector-ref (current-agent) agent-direction) d))
+  (vector-set! (current-agent) agent-direction new-d)
+  (define-values (vx vy) (degrees->components new-d))
+  (vector-set! (current-agent) agent-vx vx)
+  (vector-set! (current-agent) agent-vy vy)
+)
 
 
 (module+ test

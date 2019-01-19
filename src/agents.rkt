@@ -11,19 +11,24 @@
 (provide (rename-out [create/hash create])
          (rename-out [hatch/hash   hatch])
          show-agents
-         agent-direction
+         ;;agent-direction
+         ;;agent-vy
+         ;;agent-vx
          )
 
 (define (make-default-agent sing plur ndx)
   (define x (/ (get-global 'world-columns) 2))
   (define y (/ (get-global 'world-rows) 2))
+  (define vx (/ (random -100 100) 100.0))
+  (define vy (/ (random -100 100) 100.0))
+  (define dir (theta vx vy))
   (apply vector
          (append (list sing plur
                        ndx
                        ;; Our initial patch is the middle.
                        (->pid x y)
                        x y
-                       (random 360)
+                       vx vy dir
                        (color (random 256)
                               (random 256)
                               (random 256)))
@@ -127,12 +132,18 @@
     ;; (printf "agent: ~a~n" a)
     (define turtle-x (vector-ref a agent-x))
     (define turtle-y (vector-ref a agent-y))
-    ;;(printf "a ~a x ~a y ~a~n" (agent-id (current-agent)) turtle-x turtle-y)
-    ;; (glClear GL_DEPTH_BUFFER_BIT)
-    (glPushMatrix)
+    (define vx (vector-ref a agent-vx))
+    (define vy (vector-ref a agent-vy))
+    (define direction (theta vx vy))
     
+    #;(printf "~a: ~a ~a ~a~n"
+            (vector-ref a agent-id)
+            vx vy
+            (theta vx vy))
+    
+    (glPushMatrix)
     (glTranslatef turtle-x turtle-y 0)
-    (glRotatef (modulo (- (vector-ref a agent-direction) 90) 360) 0 0 1)
+    (glRotatef (modulo (- (exact-floor direction) 90) 360) 0 0 1)
     (glTranslatef (- turtle-x) (- turtle-y) 0)
           
     (glBegin GL_TRIANGLES)
@@ -148,6 +159,11 @@
     (glVertex3f (+ turtle-x (/ 1 2)) (- turtle-y (/ 1 2)) 0.1)
     (glEnd)
 
+    (glBegin GL_LINES)
+    (glVertex3f turtle-x turtle-y 0.1)
+    (glVertex3f turtle-x (+ 1 turtle-y) 0.1)
+    (glEnd)
+      
     #;(begin
         (glBegin GL_QUADS)
         (glColor3ub 255 255 255)
