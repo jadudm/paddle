@@ -5,9 +5,9 @@
 (struct color (red green blue) #:transparent)
 
 ;; Needed in multiple places, for syntax.
-(define agent-base-fields   '(breed plural id pid x y vx vy direction color))
+(define agent-base-fields   '(breed plural id pid x y vx vy direction shape color))
 (begin-for-syntax
-  (define agent-base-fields '(breed plural id pid x y vx vy direction color)))
+  (define agent-base-fields '(breed plural id pid x y vx vy direction shape color)))
 
 (require (for-syntax syntax/parse racket/syntax racket/list))
 (define-syntax (create-accessors stx)

@@ -8,30 +8,29 @@
 (set-edge-mode! bounce)
 
 (create-breed particle particles #:have velocity)
-(create particles 20)
+(create particles 200)
 
+(define (choice ls)
+  (list-ref ls (random (length ls))))
 
 (define (setup)
   (ask particles
     (set particle-velocity .05)
-    (set particle-x (/ RxC 2))
-    (set particle-y (/ RxC 2))
-    (set particle-direction (random 360))            
+    (set particle-x ((choice (list + -)) (/ RxC 2) (* (random) (/ RxC 20))))
+    (set particle-y ((choice (list + -)) (/ RxC 2) (* (random) (/ RxC 20))))
+    (set particle-direction (random 360))
+    (set particle-shape (shape:disk (/ 1 2) 20))
   )
   )
 
-(define counter 1)
 (define (go)
-  (set! counter (add1 counter))
-  (sleep 0.1)
   (ask particles
-    (move 1)
-    (left 5)
-    )
-  #;(when (zero? (modulo counter 10))
-    (if (equal? (edge-case) 'bounce)
-        (set-edge-mode! wrap)
-        (set-edge-mode! bounce)))
-  )
+    (jiggle)))
+
+(define (jiggle)
+  (define current-direction (get particle-direction))
+  (set particle-direction ((choice (list + -)) current-direction (random 60)))
+  ;;(set particle-direction (random 360))
+  (move (/ (random) 10)))
 
 (run-world setup go)
