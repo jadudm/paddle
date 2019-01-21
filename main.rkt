@@ -13,6 +13,7 @@
          "src/log.rkt"
          "src/plot.rkt"
          "src/patches.rkt"
+         ;;"src/tables.rkt"
          )
 
 (provide (all-from-out
@@ -29,4 +30,5 @@
           "src/log.rkt"
           "src/plot.rkt"
           "src/patches.rkt"
+          ;;"src/tables.rkt"
           ))

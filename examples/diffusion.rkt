@@ -4,14 +4,18 @@
 (require paddle)
 (require math/statistics)
 
-(define RxC 200)
-(make-world RxC 800)
+(define RxC 400)
+(make-world RxC 600)
 (create-patches)
+
+(define log (create-table "the-particles" #:columns '(meanx meany)))
 
 (set-edge-mode! bounce)
 
 (create-breed particle particles #:have velocity new-direction)
-(create particles 100)
+(define particle-count 600)
+(create particles particle-count)
+
 (define particle-radius 1)
 (define default-velocity (* 3/4 particle-radius))
 (define yellow (color 255 255 0))
@@ -35,11 +39,12 @@
   (ask patches
     (when (and (= (get patch patch-x) (/ RxC 2))
                (or (between? 7/12 (/ (get patch patch-y) RxC) 1)
-                   (between? 3/12 (/ (get patch patch-y) RxC) 6/12)
+                   (between? 3/12 (/ (get patch patch-y) RxC) 7/12)
                    (between? 0 (/ (get patch patch-y) RxC) 2/12)
                    )
                )
       (set patch color yellow))
+    
     (when (and (= (get patch patch-y) (exact-floor (/ RxC 3)))
                (or (between? 9/12 (/ (get patch patch-x) RxC) 1)
                    (between? 3/12 (/ (get patch patch-x) RxC) 8/12)
@@ -48,8 +53,18 @@
     )
   )
 
+(define (log-data)
+  (define sumx 0)
+  (define sumy 0)
+  (ask particles
+    (set! sumx (+ sumx (get particle-x)))
+    (set! sumy (+ sumy (get particle-y))))
+  ;; (log poslog '(1) (/ sumx particle-count) (/ sumy particle-count))
+  (insert log (/ sumx particle-count) (/ sumy particle-count))
+  )
+
 (define (go)
-  (sleep 0.01)
+  (log-data)
   (ask particles
     (collide))
   (ask particles
@@ -83,7 +98,7 @@
      (set particle-vy (- (get particle-vy)))
      (set particle-direction
           (theta (get particle-vx) (get particle-vy)))
-     (set particle-velocity (* (get particle-velocity) 3))
+     (set particle-velocity (* (get particle-velocity) 4))
      ]))
   
 
@@ -94,14 +109,10 @@
   (cond
     [(and (positive? them) (positive? us)) +]
     [(and (negative? them) (negative? us)) -]
-    [(and (negative? them) (positive? us)
-          (positive? (+ them us))) -]
-    [(and (negative? them) (positive? us)
-          (negative? (+ them us))) +]
-    [(and (positive? them) (negative? us)
-          (positive? (+ them us))) -]
-    [(and (positive? them) (negative? us)
-          (negative? (+ them us))) +]
+    [(and (negative? them) (positive? us) (> them us)) -]
+    [(and (negative? them) (positive? us) (< them us)) +]
+    [(and (positive? them) (negative? us) (> them us)) +]
+    [(and (positive? them) (negative? us) (< them us)) -]
     [else +]
     ))
 
@@ -119,8 +130,7 @@
      (define signx (sign-of mvx myvx))
          
      (set particle-new-direction (theta (- mvx) (- mvy)))
-     (set particle-velocity (+ (* 1.25 default-velocity (length neighbors))
-                               default-velocity))]
+     (set particle-velocity (+ (* 1.25 default-velocity) default-velocity))]
     
     [else
      (set particle-new-direction (get particle-direction))
