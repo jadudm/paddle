@@ -157,10 +157,10 @@
   (glVertex3f (+ turtle-x (/ 1 2)) (- turtle-y (/ 1 2)) 0.1)
   (glEnd)
 
-  (glBegin GL_LINES)
-  (glVertex3f turtle-x turtle-y 0.1)
-  (glVertex3f turtle-x (+ 1 turtle-y) 0.1)
-  (glEnd)
+  #;(glBegin GL_LINES)
+  #;(glVertex3f turtle-x turtle-y 0.1)
+  #;(glVertex3f turtle-x (+ 1 turtle-y) 0.1)
+  #;(glEnd)
   (glPopMatrix))
 
 ;; https://stackoverflow.com/questions/22444450/drawing-circle-with-opengl

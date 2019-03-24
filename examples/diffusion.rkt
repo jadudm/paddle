@@ -8,7 +8,7 @@
 (make-world RxC 600)
 (create-patches)
 
-(define log (create-table "the-particles" #:columns '(meanx meany)))
+;(define log (create-table "the-particles" #:columns '(meanx meany)))
 
 (set-edge-mode! bounce)
 
@@ -60,7 +60,7 @@
     (set! sumx (+ sumx (get particle-x)))
     (set! sumy (+ sumy (get particle-y))))
   ;; (log poslog '(1) (/ sumx particle-count) (/ sumy particle-count))
-  (insert log (/ sumx particle-count) (/ sumy particle-count))
+  ;(insert log (/ sumx particle-count) (/ sumy particle-count))
   )
 
 (define (go)

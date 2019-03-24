@@ -6,6 +6,7 @@
                                           (-> number? number? number? number? any))]
           [run-world                     (-> procedure? procedure? any)]
           [draw-world                    (-> any)]
+          [frames-per-second             (-> number? any)]        
           ))
 
 ;; Libraries in the Racket distribution
@@ -91,14 +92,27 @@
 
 (define draw-world (make-parameter false))
 
+(define fps (make-parameter 30))
+(define frame-duration (/ 1000 (fps)))
+(define (frames-per-second num)
+  (fps num)
+  ;; In milliseconds
+  (set! frame-duration (/ 1000 (fps)))
+  )
+
 (define (draw-thread win gl go)
     (thread (λ ()              
               (let loop ()
+                (define start (current-milliseconds))
                 (build-quadtree)
                 (go)
                 (send gl on-paint)
                 (world-tick)
                 ;; Rinse and repeat
+                (define end (current-milliseconds))
+                (define render-duration (/ (- end start) 1000))
+                (when (< render-duration frame-duration)
+                  (sleep (/ (- frame-duration render-duration) 1000)))
                 (loop)
                 ))))
 

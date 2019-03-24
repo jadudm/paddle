@@ -8,7 +8,7 @@
 
 (require paddle)
 
-(define RxC 100)
+(define RxC 200)
 (make-world RxC 600)
 (create-patches)
 

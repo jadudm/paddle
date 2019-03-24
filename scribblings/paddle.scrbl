@@ -100,6 +100,98 @@ In @racketidfont{go}, I @racketidfont{ask} turtles to move forward one patch. (I
 
 Finally, the @racketidfont{setup} and @racketidfont{go} functions are handed off to the @racketidfont{run-world} function, which then does a bunch of work behind the scenes. Along the way, it runs the @racketidfont{setup} function once, and @racketidfont{go} function over-and-over, with a 1/20th of a second pause between frames, which is determined by @racketidfont{sleep}; leaving out the pause will let the simulation run as fast as possible.
 
+@section{Paddle: World}
+
+There are several functions and syntaxes that are required to set up a paddle microworld. 
+
+@subsection{@italic{make-world}}
+
+One of the first functions we need is the one that defines the dimensions of the microworld.
+
+@defproc[(make-world 
+           [world-rows-by-columns number?]
+           [frame-rows-by-columns number?])
+         _]{ 
+         Sets the dimensions of a paddle microworld.
+         }
+
+One of the first things a paddle program needs to do is define the dimensions of the world. All paddle worlds are a grid of squares: think of a checkerboard, or graphc paper... the @italic{patches} of the world are the squares, and the @italic{agents} of the world move from one patch to the next. 
+
+There are two different dimensions that a paddle programmer needs to specify:
+
+@itemlist[
+  @item{@italic{world-rows-by-columns}: This parameter is the number of grid squares across and down in the world. For example, if you wanted a a world that has 100 squares, it would be 10x10, so this parameter would be @racket[10].}
+  @item{@italic{frame-rows-by-columns}: This parameter is the number of pixels, on the screen, that the world will be displayed as. So, if you want your 100x100 world to be displaced at a 1:1 ratio, this value should also be 10. However, this would be @italic{tiny}! On modern displays, a value of 400, 600, or 800 is a good starting point.}]
+  
+If you are uncertain what values to begin with, try starting with a world that is 100x100 and displayed at 400x400. This would suggest
+
+@racketblock[(make-world 100 400)]
+
+Because it is sometimes useful to refer back to the world dimensions, you might want to define a variable to contain this value.
+
+@racketblock[
+(define RxC 100)
+(make-world RxC 400)
+]
+
+@subsection{@italic{create-breed} and @italic{create}}
+
+Once we have defined our world, we need agents to populate it. In NetLogo, agents are thought of as belonging to a @italic{breed}. So, we borrow this concept.
+
+@defproc[#:kind "syntax"
+  (create-breed 
+    [singular identifier]
+    [plural identifier]) _]{ 
+         Defines a breed of agent.
+         }
+
+For example, in my home town, we might want to have a breed of agents that we will refer to as @italic{bobcats}. I would define this breed as follows:
+
+@racketblock[
+  (create-breed bobcat bobcats)
+]
+
+While it is true that we could automatically guess the plural, it is easier to let the programmer decide what the singular and plural form of their breed will be. These forms show up throughout a paddle program.
+
+@defproc[
+  (create
+    [breed-plural identifier]
+    [number number?]) _]{ 
+         Creates a given number of agents of the given breed.
+         }
+
+This procedure creates a number of agents in the microworld of the given breed. These agents are given a set of default values that the programmer may want to modify later (see @secref{setup}). 
+
+If I want one bobcat in the world, I would write
+
+@racketblock[
+(create bobcats 1)
+]
+
+If I want 1000 bobcats, I write 
+
+@racketblock[
+(create bobcats 1000)
+]
+
+It is possible to have different breeds in the world at the same time. For example, bobcats are natural rivals of polar bears (in Maine, anyway), and they often compete for scarce natural resources in the region (snow shovels and kayaks). Declaring and creating both of these breeds of agent might look like
+
+@racketblock[
+(create-breed bobcat bobcats)
+(create-breed polar-bear polar-bears)
+
+(create bobcats 1000)
+(create polar-bears 1000)
+]
+
+None of these agents are visible in the world until we run it.
+
+@section[#:tag "setup"]{Setting up the world}
+
+There are two functions needed to execute a microworld: an initial setup function (which is executed once) and then a run function (which is run repeatedly and indefinitely). As a programmer, you are free to name these anything you want, but by convention, they will be referred to here as @italic{setup} and @italic{go}.
+
+
+
 @section{To Be Continued}
 
 This package is under active development. Conversation and collaboration are welcome. Next steps include integrating plotting and logging, additional interface forms, and completing documentation. As of January 1, 2019, things are stabilizing, and documentation will follow. Currently, I am implementing examples so as to find where the environment does, and does not, work as a microworld.

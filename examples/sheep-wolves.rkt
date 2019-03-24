@@ -29,9 +29,9 @@
 (define WOLF-KID-ENERGY 40)
 (define WOLF-EAT-RADIUS 4)
 
-(create-log wolves-count)
-(create-log sheeps-count)
-(create-plot wolves-count sheeps-count)
+;(create-log wolves-count)
+;(create-log sheeps-count)
+;(create-plot wolves-count sheeps-count)
 
 (define (setup)
   (ask sheeps
@@ -132,8 +132,8 @@
       ))
 
   ;; Log data for the plot
-  (log wolves-count wolves)
-  (log sheeps-count sheeps)
+  ;(log wolves-count wolves)
+  ;(log sheeps-count sheeps)
   )
 
 (run-world setup go)

@@ -10,7 +10,7 @@
 (create balls 5)
 (set-edge-mode! bounce)
 
-(define the-table (create-numeric-table bouncy id y vy))
+;(define the-table (create-numeric-table bouncy id y vy))
 
 (define (setup)
   (ask balls
@@ -29,10 +29,10 @@
   (sleep 0.01)
 
   (when (> (ticker) 500)
-    (save the-table)
+    #;(save the-table)
     (stop))
   
-  (ask balls
+  #;(ask balls
     (insert the-table (get ball-id) (get ball-y) (get ball-vy)))
   
   (ask balls
