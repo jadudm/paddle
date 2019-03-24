@@ -4,8 +4,8 @@
 (require paddle)
 (require math/statistics)
 
-(define RxC 400)
-(make-world RxC 600)
+(define RxC 200)
+(make-world RxC 800)
 (create-patches)
 
 ;(define log (create-table "the-particles" #:columns '(meanx meany)))
@@ -13,10 +13,10 @@
 (set-edge-mode! bounce)
 
 (create-breed particle particles #:have velocity new-direction)
-(define particle-count 600)
+(define particle-count 200)
 (create particles particle-count)
 
-(define particle-radius 1)
+(define particle-radius 1.2)
 (define default-velocity (* 3/4 particle-radius))
 (define yellow (color 255 255 0))
 
@@ -29,8 +29,8 @@
 (define (setup)
   (ask particles
     (set particle-velocity default-velocity)
-    (set particle-x (add1 (random (* 5/8 RxC) RxC)))
-    (set particle-y (random (* 5/8 RxC) RxC))
+    (set particle-x (add1 (random (exact-floor (* 5/8 RxC)) RxC)))
+    (set particle-y (random (exact-floor (* 5/8 RxC)) RxC))
     (set particle-direction (random 360))
     (set particle-shape (shape:disk particle-radius 20))
     )
@@ -98,7 +98,7 @@
      (set particle-vy (- (get particle-vy)))
      (set particle-direction
           (theta (get particle-vx) (get particle-vy)))
-     (set particle-velocity (* (get particle-velocity) 4))
+     ;(set particle-velocity (* (get particle-velocity) 2))
      ]))
   
 
@@ -117,7 +117,7 @@
     ))
 
 (define (collide)
-  (define neighbors (sniff particles (* 2 particle-radius)))
+  (define neighbors (sniff particles (* 1.2 particle-radius)))
   (cond
     [(have-neighbors? neighbors) 
      (define nvxs (map (λ (a) (get a particle-vx)) neighbors))
@@ -130,7 +130,8 @@
      (define signx (sign-of mvx myvx))
          
      (set particle-new-direction (theta (- mvx) (- mvy)))
-     (set particle-velocity (+ (* 1.25 default-velocity) default-velocity))]
+     ;(set particle-velocity particle-radius)
+     ]
     
     [else
      (set particle-new-direction (get particle-direction))
@@ -180,5 +181,4 @@
      (set particle-velocity default-velocity)]
     ))
      
-
 (run-world setup go)
