@@ -4,7 +4,7 @@ paddle is inspired by [NetLogo](https://ccl.northwestern.edu/netlogo/) and its p
 
 ## Installing paddle
 
-First, install [DrRacket](). This is a programming environment for the language Racket, a descendant of Scheme. (Javascript is also a descendant of Scheme, althogh the brackets make people think it is a child of C and Java. The closures give it away.) 
+First, install [DrRacket](). This is a programming environment for the language Racket, a descendant of Scheme. (Javascript is also a descendant of Scheme! Who knew!) 
 
 To install paddle, go to the *File* menu in DrRacket, then the *Package Manager*. Type **paddle** and click the *Install* button. 
 
