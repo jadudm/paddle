@@ -35,3 +35,7 @@ To explore paddle on your own, you'll want to [check out the source](https://git
 The documentation is sparse, because this was a "robust prototype." My goal was to develop it further for the 2019--2020 academic year. (That is, there were several more months of work yet to be done.) The context was going to be a course that investigated air quality, and we would use paddle to conduct some *in silico* simulations of diffusion to augment our *in vivo* experiments with particulate counters. 
 
 So, it is possible to use paddle for your own explorations, and the documentation that exists is accurate, but the full language and environment that paddle represents is not yet fully documented. 
+
+## Open Source
+
+paddle is free and open software, and will be a place I'll go back to again for future exploration.
