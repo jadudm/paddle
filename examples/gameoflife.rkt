@@ -160,11 +160,11 @@
            go))
 
 (define gol-patterns
-  '([gosper             "http://www.conwaylife.com/patterns/gosperglidergun.rle"]
-    [frothing-puffer    "http://www.conwaylife.com/patterns/frothingpuffer.rle"]
-    [glider-train       "http://www.conwaylife.com/patterns/glidertrain.rle"]
-    [coe-ship           "http://www.conwaylife.com/patterns/coeship.rle"]
-    [puffer-1           "http://www.conwaylife.com/patterns/puffer1.rle"]
+  '([gosper             "https://www.conwaylife.com/patterns/gosperglidergun.rle"]
+    [frothing-puffer    "https://www.conwaylife.com/patterns/frothingpuffer.rle"]
+    [glider-train       "https://www.conwaylife.com/patterns/glidertrain.rle"]
+    [coe-ship           "https://www.conwaylife.com/patterns/coeship.rle"]
+    [puffer-1           "https://www.conwaylife.com/patterns/puffer1.rle"]
     ))
 
 (define (run-random world frame)
