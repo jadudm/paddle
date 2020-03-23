@@ -2,6 +2,17 @@ paddle is a *microworld*. This means that Paddle lets you simulate the world aro
 
 paddle is inspired by [NetLogo](https://ccl.northwestern.edu/netlogo/) and its predecessor [StarLogo](https://education.mit.edu/project/starlogo-tng/).
 
+## Seeing paddle in action
+
+You can check some videos out on YouTube to see paddle in action.
+
+* In this first video, at [1:52](https://youtu.be/kCw9F180g8k?t=112), you can see a simulation of particle diffusion. This is arguably what paddle was developed for.
+* At [38 seconds in](https://youtu.be/FpMy9QxWnhE?t=38) on this second video, you can see the simulation of termites picking up woodchips.
+* At [2:02](https://youtu.be/FpMy9QxWnhE?t=122) you can see a simulation of boids flocking.
+* At [3:04](https://youtu.be/FpMy9QxWnhE?t=184) is Conway's *Game of Life*.
+* Finally, I also experimented with interactive GUIs, a prototype of which can be seen [here](https://youtu.be/HniGoLgyyuk?t=28).
+
+
 ## Installing paddle
 
 First, install [DrRacket](). This is a programming environment for the language Racket, a descendant of Scheme. 
