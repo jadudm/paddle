@@ -21,7 +21,7 @@ To install paddle, go to the *File* menu in DrRacket, then the *Package Manager*
 
 ## Exploring paddle
 
-There is [some documentation](https://docs.racket-lang.org/paddle@paddle/index.html) written, but paddle was a technology exploration carried out between myself and students. For me, it was a chance to explore macros, the implementation of a small language, and drawing interesting things in OpenGL. (And, I got to implement a [quadtree](https://github.com/jadudm/paddle/blob/explore/src/quadtree.rkt), with some rudimentary testing no less.) The ultimate goal was to use it as a simulation environment as part of a research-based course for first-year students particulates and air quality.
+There is [some documentation](https://docs.racket-lang.org/paddle@paddle/index.html) written, but paddle was a technology exploration carried out between myself and students. For me, it was a chance to explore macros, the implementation of a small language, and drawing interesting things in OpenGL. (And, I got to implement a [quadtree](https://github.com/jadudm/paddle/blob/explore/src/quadtree.rkt), with some rudimentary testing no less.) The ultimate goal was to use it as a simulation environment as part of a research-based course for first-year students studying particulates and air quality.
 
 To explore paddle on your own, you'll want to [check out the source](https://github.com/jadudm/paddle/tree/master/examples). You can either clone the repository, or download it as a zipfile. Then, using DrRacket, open the code examples in the `examples` directory. 
 
